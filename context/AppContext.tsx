@@ -1,237 +1,275 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
-import type { UserProfile, PremiumEntitlement, ChatConversation, ChatMessage } from "@/types";
-import { getDefaultProfile } from "@/lib/mockAuth";
-import { getDefaultEntitlement, activatePremium } from "@/lib/mockEntitlements";
+import React, { createContext, useCallback, useContext, useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
+import type { PremiumEntitlement, UserProfile } from "@/types";
+import { ApiError, UNAUTHORIZED_EVENT, apiFetch, getStoredToken, postJson, putJson, setStoredToken } from "@/lib/api";
+import { getSupabase, supabaseEnabled } from "@/lib/supabase";
 
-// ── Context Shape ─────────────────────────────────────────────
+type Result = { ok: true } | { ok: false; error: string };
+
 interface AppContextValue {
-  // Auth
+  // Auth (accounts live in the AstroVerse backend, or Supabase when configured)
   isAuthenticated: boolean;
+  authLoading: boolean;
   user: UserProfile | null;
-  login: (email: string, password: string) => boolean;
-  signup: (name: string, email: string, password: string) => boolean;
+  login: (email: string, password: string) => Promise<Result>;
+  signup: (name: string, email: string, password: string) => Promise<Result>;
   logout: () => void;
-  updateProfile: (updates: Partial<UserProfile>) => void;
+  updateProfile: (updates: Partial<UserProfile>) => Promise<Result>;
+  refreshUser: () => Promise<void>;
+  requestPasswordReset: (email: string) => Promise<Result & { message?: string }>;
+  resetPassword: (token: string, password: string) => Promise<Result>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<Result>;
+  deleteAccount: (password: string) => Promise<Result>;
 
-  // Premium
+  // Premium (granted server-side)
   premium: PremiumEntitlement;
-  activatePremiumAccess: (couponCode?: string) => void;
+  activatePremiumAccess: (couponCode: string) => Promise<Result>;
 
   // Onboarding
   isOnboarded: boolean;
-  completeOnboarding: (profile: Partial<UserProfile>) => void;
-
-  // Chatbot
-  conversations: ChatConversation[];
-  activeConversation: ChatConversation | null;
-  setActiveConversation: (conv: ChatConversation | null) => void;
-  addMessage: (message: ChatMessage) => void;
-  startNewConversation: () => void;
-  clearConversation: () => void;
+  completeOnboarding: (profile: Partial<UserProfile>) => Promise<Result>;
 
   // Sidebar
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
 
-  // Palm image
+  // Palm photo preview from onboarding/settings (kept only in this browser)
   palmImageUrl: string | null;
   setPalmImageUrl: (url: string | null) => void;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
 
-// ── Storage Keys ──────────────────────────────────────────────
-const STORAGE_KEYS = {
-  user: "astroverse_user",
-  premium: "astroverse_premium",
-  onboarded: "astroverse_onboarded",
-  authenticated: "astroverse_authenticated",
-  conversations: "astroverse_conversations",
-  palmImage: "astroverse_palm_image",
-} as const;
+const FREE_PLAN: PremiumEntitlement = { isActive: false, plan: "Free Standard Tier" };
+const PALM_KEY = "astroverse_palm_image";
+// Keys written by the earlier demo login; removed so stale demo profiles never reappear.
+const LEGACY_KEYS = ["astroverse_user", "astroverse_premium", "astroverse_onboarded", "astroverse_authenticated", "astroverse_conversations", "astroverse_client_id"];
 
-function loadFromStorage<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") return fallback;
+type AuthResponse = { access_token: string; user: UserProfile };
+
+function message(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message ? error.message : fallback;
+}
+
+/** Map the UI's camelCase profile fields to the backend's profile payload. */
+function toProfilePayload(updates: Partial<UserProfile>): Record<string, unknown> {
+  const map: Record<string, unknown> = {};
+  if (updates.name !== undefined) map.name = updates.name;
+  if (updates.dateOfBirth !== undefined) map.date_of_birth = updates.dateOfBirth || null;
+  if (updates.timeOfBirth !== undefined) map.time_of_birth = updates.timeOfBirth || "";
+  if (updates.timeOfBirthUnknown !== undefined) map.time_of_birth_unknown = updates.timeOfBirthUnknown;
+  if (updates.placeOfBirth !== undefined) map.place_of_birth = updates.placeOfBirth;
+  if (updates.gender !== undefined) map.gender = updates.gender || null;
+  if (updates.dominantHand !== undefined) map.dominant_hand = updates.dominantHand;
+  if (updates.onboarded !== undefined) map.onboarded = updates.onboarded;
+  if (updates.notificationPrefs !== undefined) map.notification_prefs = updates.notificationPrefs;
+  return map;
+}
+
+// `hydrated` is false on the server and during hydration, true afterwards; nothing to subscribe to.
+const subscribeNever = () => () => {};
+
+function readPalmImage(): string | null {
+  if (typeof window === "undefined") return null;
   try {
-    const stored = localStorage.getItem(key);
-    return stored ? JSON.parse(stored) : fallback;
+    return localStorage.getItem(PALM_KEY);
   } catch {
-    return fallback;
+    return null;
   }
 }
 
-function saveToStorage(key: string, value: unknown) {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    // Storage full or unavailable
-  }
-}
-
-// ── Provider ──────────────────────────────────────────────────
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const hydrated = useSyncExternalStore(subscribeNever, () => true, () => false);
   const [user, setUser] = useState<UserProfile | null>(null);
-  const [premium, setPremium] = useState<PremiumEntitlement>(getDefaultEntitlement());
-  const [isOnboarded, setIsOnboarded] = useState(false);
-  const [conversations, setConversations] = useState<ChatConversation[]>([]);
-  const [activeConversation, setActiveConversation] = useState<ChatConversation | null>(null);
+  // Resolving a stored session needs a network round trip; start in the loading state when one exists.
+  const [authLoading, setAuthLoading] = useState(() => typeof window !== "undefined" && (supabaseEnabled || Boolean(getStoredToken())));
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [palmImageUrl, setPalmImageUrl] = useState<string | null>(null);
-  const [hydrated, setHydrated] = useState(false);
+  const [palmImageUrl, setPalmImageUrlState] = useState<string | null>(readPalmImage);
 
-  // Hydrate from localStorage on mount
-  useEffect(() => {
-    setIsAuthenticated(loadFromStorage(STORAGE_KEYS.authenticated, false));
-    setUser(loadFromStorage<UserProfile | null>(STORAGE_KEYS.user, null));
-    setPremium(loadFromStorage(STORAGE_KEYS.premium, getDefaultEntitlement()));
-    setIsOnboarded(loadFromStorage(STORAGE_KEYS.onboarded, false));
-    setConversations(loadFromStorage(STORAGE_KEYS.conversations, []));
-    setPalmImageUrl(loadFromStorage(STORAGE_KEYS.palmImage, null));
-    setHydrated(true);
-  }, []);
-
-  // Persist to localStorage on changes
-  useEffect(() => {
-    if (!hydrated) return;
-    saveToStorage(STORAGE_KEYS.authenticated, isAuthenticated);
-  }, [isAuthenticated, hydrated]);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    saveToStorage(STORAGE_KEYS.user, user);
-  }, [user, hydrated]);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    saveToStorage(STORAGE_KEYS.premium, premium);
-  }, [premium, hydrated]);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    saveToStorage(STORAGE_KEYS.onboarded, isOnboarded);
-  }, [isOnboarded, hydrated]);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    saveToStorage(STORAGE_KEYS.conversations, conversations);
-  }, [conversations, hydrated]);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    saveToStorage(STORAGE_KEYS.palmImage, palmImageUrl);
-  }, [palmImageUrl, hydrated]);
-
-  const login = useCallback((email: string, _password: string): boolean => {
-    if (!email.includes("@")) return false;
-    const existingUser = loadFromStorage<UserProfile | null>(STORAGE_KEYS.user, null);
-    const profile = existingUser || getDefaultProfile();
-    if (!existingUser) {
-      profile.email = email;
+  const clearSession = useCallback(() => {
+    setStoredToken(null);
+    setUser(null);
+    try {
+      LEGACY_KEYS.forEach((key) => localStorage.removeItem(key));
+    } catch {
+      // ignore
     }
-    setUser(profile);
-    setIsAuthenticated(true);
-    const wasOnboarded = loadFromStorage(STORAGE_KEYS.onboarded, false);
-    setIsOnboarded(wasOnboarded);
-    return true;
   }, []);
 
-  const signup = useCallback((name: string, email: string, _password: string): boolean => {
-    if (!email.includes("@") || !name.trim()) return false;
-    const profile: UserProfile = {
-      id: crypto.randomUUID(),
-      name: name.trim(),
-      email: email.trim(),
-      dateOfBirth: "",
-      timeOfBirth: "",
-      placeOfBirth: "",
-    };
-    setUser(profile);
-    setIsAuthenticated(true);
-    setIsOnboarded(false);
-    return true;
+  const refreshUser = useCallback(async () => {
+    try {
+      setUser(await apiFetch<UserProfile>("/auth/me"));
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) clearSession();
+      else throw error;
+    }
+  }, [clearSession]);
+
+  // Restore the session once on load.
+  useEffect(() => {
+    if (!authLoading) return;
+    let cancelled = false;
+    (async () => {
+      if (supabaseEnabled) {
+        const { data } = await getSupabase()!.auth.getSession();
+        if (!data.session) return;
+      }
+      await refreshUser();
+    })()
+      .catch(() => undefined)
+      .finally(() => { if (!cancelled) setAuthLoading(false); });
+    return () => { cancelled = true; };
+  }, [authLoading, refreshUser]);
+
+  // Any API call rejected with 401 means the session is gone: sign out everywhere.
+  useEffect(() => {
+    const onUnauthorized = () => clearSession();
+    window.addEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
+    return () => window.removeEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
+  }, [clearSession]);
+
+  const startSession = useCallback((response: AuthResponse) => {
+    try {
+      LEGACY_KEYS.forEach((key) => localStorage.removeItem(key));
+    } catch {
+      // ignore
+    }
+    setStoredToken(response.access_token);
+    setUser(response.user);
   }, []);
+
+  const login = useCallback(async (email: string, password: string): Promise<Result> => {
+    try {
+      if (supabaseEnabled) {
+        const { error } = await getSupabase()!.auth.signInWithPassword({ email, password });
+        if (error) return { ok: false, error: error.message };
+        await refreshUser();
+        return { ok: true };
+      }
+      startSession(await postJson<AuthResponse>("/auth/login", { email, password }));
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: message(error, "Sign in failed. Please try again.") };
+    }
+  }, [refreshUser, startSession]);
+
+  const signup = useCallback(async (name: string, email: string, password: string): Promise<Result> => {
+    try {
+      if (supabaseEnabled) {
+        const { data, error } = await getSupabase()!.auth.signUp({ email, password, options: { data: { full_name: name } } });
+        if (error) return { ok: false, error: error.message };
+        if (!data.session) return { ok: false, error: "Check your email to confirm your account, then sign in." };
+        await refreshUser();
+        return { ok: true };
+      }
+      startSession(await postJson<AuthResponse>("/auth/signup", { name, email, password }));
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: message(error, "Could not create the account. Please try again.") };
+    }
+  }, [refreshUser, startSession]);
 
   const logout = useCallback(() => {
-    setIsAuthenticated(false);
-    setUser(null);
-    setPremium(getDefaultEntitlement());
-    setIsOnboarded(false);
-    setConversations([]);
-    setActiveConversation(null);
-    setPalmImageUrl(null);
-    Object.values(STORAGE_KEYS).forEach((key) => {
-      if (typeof window !== "undefined") localStorage.removeItem(key);
-    });
-  }, []);
-
-  const updateProfile = useCallback((updates: Partial<UserProfile>) => {
-    setUser((prev) => (prev ? { ...prev, ...updates } : prev));
-  }, []);
-
-  const activatePremiumAccess = useCallback((couponCode?: string) => {
-    const entitlement = activatePremium(couponCode);
-    setPremium(entitlement);
-  }, []);
-
-  const completeOnboarding = useCallback((profile: Partial<UserProfile>) => {
-    setUser((prev) => (prev ? { ...prev, ...profile } : prev));
-    setIsOnboarded(true);
-  }, []);
-
-  const addMessage = useCallback((message: ChatMessage) => {
-    setConversations((prev) => {
-      const updated = [...prev];
-      if (updated.length === 0 || !activeConversation) {
-        const newConv: ChatConversation = {
-          id: crypto.randomUUID(),
-          title: message.role === "user" ? message.content.slice(0, 40) + "..." : "New Conversation",
-          messages: [message],
-          createdAt: new Date().toISOString(),
-        };
-        updated.push(newConv);
-        setTimeout(() => setActiveConversation(newConv), 0);
-        return updated;
-      }
-      const idx = updated.findIndex((c) => c.id === activeConversation.id);
-      if (idx !== -1) {
-        updated[idx] = {
-          ...updated[idx],
-          messages: [...updated[idx].messages, message],
-        };
-        setTimeout(() => setActiveConversation(updated[idx]), 0);
-      }
-      return updated;
-    });
-  }, [activeConversation]);
-
-  const startNewConversation = useCallback(() => {
-    const newConv: ChatConversation = {
-      id: crypto.randomUUID(),
-      title: "New Conversation",
-      messages: [],
-      createdAt: new Date().toISOString(),
-    };
-    setConversations((prev) => [...prev, newConv]);
-    setActiveConversation(newConv);
-  }, []);
-
-  const clearConversation = useCallback(() => {
-    if (activeConversation) {
-      setConversations((prev) =>
-        prev.map((c) =>
-          c.id === activeConversation.id ? { ...c, messages: [] } : c
-        )
-      );
-      setActiveConversation((prev) => (prev ? { ...prev, messages: [] } : null));
+    getSupabase()?.auth.signOut().catch(() => undefined);
+    clearSession();
+    try {
+      localStorage.removeItem(PALM_KEY);
+    } catch {
+      // ignore
     }
-  }, [activeConversation]);
+    setPalmImageUrlState(null);
+  }, [clearSession]);
 
-  // Don't render children until hydrated to prevent mismatch
-  if (!hydrated) {
+  const updateProfile = useCallback(async (updates: Partial<UserProfile>): Promise<Result> => {
+    try {
+      setUser(await putJson<UserProfile>("/auth/profile", toProfilePayload(updates)));
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: message(error, "Could not save your profile.") };
+    }
+  }, []);
+
+  const completeOnboarding = useCallback(
+    (profile: Partial<UserProfile>) => updateProfile({ ...profile, onboarded: true }),
+    [updateProfile],
+  );
+
+  const activatePremiumAccess = useCallback(async (couponCode: string): Promise<Result> => {
+    try {
+      setUser(await postJson<UserProfile>("/auth/premium/redeem", { coupon_code: couponCode }));
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: message(error, "Could not activate Premium.") };
+    }
+  }, []);
+
+  const requestPasswordReset = useCallback(async (email: string): Promise<Result & { message?: string }> => {
+    try {
+      if (supabaseEnabled) {
+        const { error } = await getSupabase()!.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/reset-password` });
+        if (error) return { ok: false, error: error.message };
+        return { ok: true, message: "If an account exists for that email, a reset link is on its way." };
+      }
+      const response = await postJson<{ message: string }>("/auth/password/forgot", { email });
+      return { ok: true, message: response.message };
+    } catch (error) {
+      return { ok: false, error: message(error, "Could not send the reset link. Please try again.") };
+    }
+  }, []);
+
+  const resetPassword = useCallback(async (token: string, password: string): Promise<Result> => {
+    try {
+      if (supabaseEnabled) {
+        // Supabase signs the user in from the emailed link; the new password is set on that session.
+        const { error } = await getSupabase()!.auth.updateUser({ password });
+        if (error) return { ok: false, error: error.message };
+        await refreshUser();
+        return { ok: true };
+      }
+      startSession(await postJson<AuthResponse>("/auth/password/reset", { token, password }));
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: message(error, "Could not reset the password.") };
+    }
+  }, [refreshUser, startSession]);
+
+  const changePassword = useCallback(async (currentPassword: string, newPassword: string): Promise<Result> => {
+    try {
+      if (supabaseEnabled && user?.authProvider === "supabase") {
+        const { error: signInError } = await getSupabase()!.auth.signInWithPassword({ email: user.email, password: currentPassword });
+        if (signInError) return { ok: false, error: "Your current password is incorrect." };
+        const { error } = await getSupabase()!.auth.updateUser({ password: newPassword });
+        return error ? { ok: false, error: error.message } : { ok: true };
+      }
+      startSession(await postJson<AuthResponse>("/auth/password/change", { current_password: currentPassword, new_password: newPassword }));
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: message(error, "Could not change the password.") };
+    }
+  }, [startSession, user]);
+
+  const deleteAccount = useCallback(async (password: string): Promise<Result> => {
+    try {
+      await apiFetch("/auth/account", { method: "DELETE", body: JSON.stringify({ password: password || null, confirm: "DELETE" }) });
+      logout();
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: message(error, "Could not delete the account.") };
+    }
+  }, [logout]);
+
+  const setPalmImageUrl = useCallback((url: string | null) => {
+    setPalmImageUrlState(url);
+    try {
+      if (url) localStorage.setItem(PALM_KEY, url);
+      else localStorage.removeItem(PALM_KEY);
+    } catch {
+      // Large photos can exceed storage quota; the preview simply isn't kept.
+    }
+  }, []);
+
+  if (!hydrated || authLoading) {
     return (
       <div className="min-h-screen bg-ivory flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-gold border-t-transparent rounded-full animate-spin" />
@@ -242,22 +280,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return (
     <AppContext.Provider
       value={{
-        isAuthenticated,
+        isAuthenticated: Boolean(user),
+        authLoading,
         user,
         login,
         signup,
         logout,
         updateProfile,
-        premium,
+        refreshUser,
+        requestPasswordReset,
+        resetPassword,
+        changePassword,
+        deleteAccount,
+        premium: user?.premium ?? FREE_PLAN,
         activatePremiumAccess,
-        isOnboarded,
+        isOnboarded: Boolean(user?.onboarded),
         completeOnboarding,
-        conversations,
-        activeConversation,
-        setActiveConversation,
-        addMessage,
-        startNewConversation,
-        clearConversation,
         sidebarOpen,
         setSidebarOpen,
         palmImageUrl,
@@ -269,7 +307,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// ── Hook ──────────────────────────────────────────────────────
 export function useApp(): AppContextValue {
   const context = useContext(AppContext);
   if (!context) {

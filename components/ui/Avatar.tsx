@@ -53,6 +53,7 @@ export const Avatar: React.FC<AvatarProps> = ({
         `}
       >
         {showImage ? (
+          // eslint-disable-next-line @next/next/no-img-element -- arbitrary avatar URLs/data URLs
           <img
             src={src}
             alt={alt || name}

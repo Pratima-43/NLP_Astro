@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AstroVerse / NLP_Astro
 
-## Getting Started
+AstroVerse reads a person through **Vedic numerology**, **Vedic astrology** and **palmistry**, then compares what the three systems say. Each reading is calculated deterministically, interpreted only from a source-backed knowledge base, and shows its full calculation on request. A chatbot and a combined report answer questions from all three readings, with each system's contribution shown.
 
-First, run the development server:
+- **Frontend:** Next.js 16 (App Router, Turbopack), React 19, Tailwind CSS 4, in the repository root.
+- **Backend:** FastAPI, SQLAlchemy 2 and Alembic, in [`backend/`](backend/README.md). It runs on Supabase PostgreSQL, or SQLite for local work.
+- **AI:** Groq, which writes readings from the cited evidence only.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Run locally (Windows PowerShell)
+
+Backend, in one terminal:
+
+```powershell
+cd backend
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+Copy-Item .env.example .env      # set GROQ_API_KEY, AUTH_SECRET_KEY, DATABASE_URL
+alembic upgrade head             # when DATABASE_URL points at Supabase/Postgres
+python seed_knowledge.py
+uvicorn app.main:app --port 8000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Frontend, in a second terminal from the repository root:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```powershell
+npm ci
+Copy-Item .env.local.example .env.local
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Open `http://localhost:3000`. API docs are at `http://localhost:8000/docs`. Redeem coupon `ASTROFREE` on the Pricing page for Premium (the chatbot and the combined report).
 
-## Learn More
+`.env.local` holds only browser-visible values. Never put database passwords, the Groq key, `AUTH_SECRET_KEY` or a Supabase service-role key in a `NEXT_PUBLIC_*` variable.
 
-To learn more about Next.js, take a look at the following resources:
+## What's included
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Area | Details |
+|---|---|
+| Numerology | Moolank, Bhagyank, Namank (Chaldean), Personal Year, from the research team's Numerology Guide |
+| Vedic astrology | Swiss Ephemeris (Lahiri), whole-sign houses, dignities, yogas, Vimshottari dashas, transits, North-Indian chart |
+| Palmistry | MediaPipe hand landmarks, crease tracing of 5 lines, 9 mounts, hand shape; Cheiro's *Palmistry for All* |
+| Integration | Chatbot and combined report with per-module contribution percentages |
+| Accounts | Sign up and sign in, forgot/reset password by email, change password, delete account, notification preferences |
+| Premium | Server-side coupon redemption |
+| Reports | "Save as PDF" on every reading and on the combined report |
+| Pages | About, Privacy Policy, Terms of Service |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+See [`backend/README.md`](backend/README.md) for method notes, the API table, Supabase setup, email (SMTP) configuration and migrations.
 
-## Deploy on Vercel
+## Checks
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```powershell
+npx tsc --noEmit; npm run lint; npm run build      # frontend
+cd backend; python -m pytest -q; alembic check      # backend
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Numerology, astrology and palmistry are traditional practices, not scientifically validated methods. The app presents them as reflection and entertainment.

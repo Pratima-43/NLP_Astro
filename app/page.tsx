@@ -888,13 +888,13 @@ export default function LandingPage() {
                 <div className="w-5 h-5 rounded-full bg-[#4A7C59]/15 text-[#4A7C59] flex items-center justify-center shrink-0">
                   <Check className="w-3.5 h-3.5" />
                 </div>
-                <span className="font-medium">PDF Report Downloads (Print-ready Dossier)</span>
+                <span className="font-medium">PDF Downloads of Every Reading &amp; Report</span>
               </li>
               <li className="flex items-center gap-3 text-sm text-[#252525]">
                 <div className="w-5 h-5 rounded-full bg-[#4A7C59]/15 text-[#4A7C59] flex items-center justify-center shrink-0">
                   <Check className="w-3.5 h-3.5" />
                 </div>
-                <span className="font-medium">Priority Support & Continuous Model Updates</span>
+                <span className="font-medium">Source Evidence Behind Every Prediction</span>
               </li>
             </ul>
 
@@ -945,7 +945,7 @@ export default function LandingPage() {
               </p>
               <div className="flex items-center gap-2 pt-2 text-xs text-[#D4B87A]">
                 <Shield className="w-4 h-4" />
-                <span>Privacy-first · Encrypted biometrics</span>
+                <span>Privacy-first · Palm photos never stored</span>
               </div>
             </div>
 
@@ -985,24 +985,14 @@ export default function LandingPage() {
               </h4>
               <ul className="space-y-2.5 text-xs text-[#FAF7F0]/75">
                 <li>
-                  <span className="cursor-default hover:text-white transition-colors">
+                  <Link href="/about" className="hover:text-white transition-colors">
                     About
-                  </span>
+                  </Link>
                 </li>
                 <li>
-                  <span className="cursor-default hover:text-white transition-colors">
-                    Contact
-                  </span>
-                </li>
-                <li>
-                  <span className="cursor-default hover:text-white transition-colors">
-                    Careers
-                  </span>
-                </li>
-                <li>
-                  <span className="cursor-default hover:text-white transition-colors">
+                  <Link href="/about#research" className="hover:text-white transition-colors">
                     Research
-                  </span>
+                  </Link>
                 </li>
               </ul>
             </div>
@@ -1014,19 +1004,19 @@ export default function LandingPage() {
               </h4>
               <ul className="space-y-2.5 text-xs text-[#FAF7F0]/75">
                 <li>
-                  <span className="cursor-default hover:text-white transition-colors">
+                  <Link href="/privacy" className="hover:text-white transition-colors">
                     Privacy Policy
-                  </span>
+                  </Link>
                 </li>
                 <li>
-                  <span className="cursor-default hover:text-white transition-colors">
+                  <Link href="/terms" className="hover:text-white transition-colors">
                     Terms of Service
-                  </span>
+                  </Link>
                 </li>
                 <li>
-                  <span className="cursor-default hover:text-white transition-colors">
+                  <Link href="/privacy#security" className="hover:text-white transition-colors">
                     Security Disclosure
-                  </span>
+                  </Link>
                 </li>
               </ul>
             </div>

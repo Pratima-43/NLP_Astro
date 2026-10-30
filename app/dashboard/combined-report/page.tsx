@@ -1,265 +1,170 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { FileBarChart, Star, Hash, Hand, Check, AlertTriangle, Sparkles, Download, Lock, Crown, ArrowRight, Heart, Briefcase, Compass, TrendingUp } from "lucide-react";
-import { mockCombinedReport } from "@/data/combinedReport";
+import { ArrowRight, FileBarChart, GitCompareArrows, Link2, Lock, RefreshCw, Scale, Zap } from "lucide-react";
 import { useApp } from "@/context/AppContext";
+import { apiFetch, postJson } from "@/lib/api";
+import { CalculationGate, ContributionBar, ErrorBanner, LoadingStages, MODULE_META, PageHero, PrintButton, SectionTitle } from "@/components/readings/ReadingUI";
+import type { CombinedReportResult, IntegrationStatus, ModuleKey, Relation } from "@/types/readings";
 
-const SECTIONS = ["Overview", "Profile", "Astrology", "Numerology", "Palmistry", "Agreements", "Complementary", "Conflicts", "Career", "Relationships", "Growth", "Guidance", "Summary"];
-
-const SOURCE_COLORS: Record<string, string> = {
-  astrology: "bg-purple-100 text-purple-700",
-  numerology: "bg-blue-100 text-blue-700",
-  palmistry: "bg-green-100 text-green-700",
+const RELATION: Record<Relation, { label: string; color: string; description: string }> = {
+  agreement: { label: "Agreement", color: "#4A7C59", description: "The systems point the same way" },
+  partial_overlap: { label: "Partial overlap", color: "#C6A15B", description: "They share some ground" },
+  difference: { label: "Different aspects", color: "#5B6CC6", description: "They speak to different sides" },
+  contradiction: { label: "Contradiction", color: "#C45B5B", description: "They pull in opposite directions" },
+  single_source: { label: "Single source", color: "#9B9488", description: "Only one system speaks to this" },
 };
-
-function SourceBadge({ source }: { source: string }) {
-  return <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium capitalize ${SOURCE_COLORS[source] || "bg-gray-100 text-gray-600"}`}>{source}</span>;
-}
+const LINKS: Record<ModuleKey, string> = { numerology: "/dashboard/numerology", astrology: "/dashboard/astrology", palmistry: "/dashboard/palmistry" };
 
 export default function CombinedReportPage() {
   const { premium } = useApp();
-  const [activeSection, setActiveSection] = useState("Overview");
-  const d = mockCombinedReport;
+  const [status, setStatus] = useState<IntegrationStatus | null>(null);
+  const [report, setReport] = useState<CombinedReportResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleDownload = () => {
-    const lines = [
-      "═══════════════════════════════════════════",
-      "     AstroVerse — Combined Report",
-      "     Generated: " + new Date().toLocaleDateString(),
-      "═══════════════════════════════════════════",
-      "", "OVERVIEW", "─".repeat(40), d.overview,
-      "", "PROFILE SUMMARY", "─".repeat(40), d.profileSummary,
-      "", "ASTROLOGY FINDINGS", "─".repeat(40), ...d.astrologyFindings.map((f) => "• " + f),
-      "", "NUMEROLOGY FINDINGS", "─".repeat(40), ...d.numerologyFindings.map((f) => "• " + f),
-      "", "PALMISTRY FINDINGS", "─".repeat(40), ...d.palmistryFindings.map((f) => "• " + f),
-      "", "CROSS-SYSTEM AGREEMENTS", "─".repeat(40), ...d.agreements.map((a) => `\n[${a.sources.join(", ")}] ${a.title}\n${a.content}`),
-      "", "COMPLEMENTARY FINDINGS", "─".repeat(40), ...d.complementary.map((c) => `\n[${c.sources.join(", ")}] ${c.title}\n${c.content}`),
-      "", "CONFLICTING FINDINGS", "─".repeat(40), ...d.conflicts.map((c) => `\n[${c.sources.join(", ")}] ${c.title}\n${c.content}`),
-      "", "CAREER OVERVIEW", "─".repeat(40), d.careerOverview.content,
-      "", "RELATIONSHIPS", "─".repeat(40), d.relationshipOverview.content,
-      "", "PERSONAL GROWTH", "─".repeat(40), d.personalGrowth.content,
-      "", "GENERAL GUIDANCE", "─".repeat(40), d.generalGuidance.content,
-      "", "SUMMARY", "─".repeat(40), d.summary,
-      "", "═══════════════════════════════════════════",
-      "  This is a sample report from AstroVerse",
-      "  © 2024 AstroVerse. All rights reserved.",
-      "═══════════════════════════════════════════",
-    ];
-    const blob = new Blob([lines.join("\n")], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = "AstroVerse_Combined_Report.txt"; a.click();
-    URL.revokeObjectURL(url);
-  };
+  useEffect(() => {
+    if (premium.isActive) apiFetch<IntegrationStatus>("/integration/status").then(setStatus).catch((e) => setError(e instanceof Error ? e.message : ""));
+  }, [premium.isActive]);
 
-  // Premium gate
+  async function generate() {
+    setLoading(true);
+    setError("");
+    try {
+      setReport(await postJson<CombinedReportResult>("/integration/report", {}));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to build the combined report.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   if (!premium.isActive) {
     return (
-      <div className="max-w-4xl mx-auto animate-fade-in">
-        <div className="relative">
-          {/* Lock overlay */}
-          <div className="absolute inset-0 z-10 flex items-center justify-center">
-            <div className="bg-white rounded-2xl border border-[#E8DFCF] p-8 shadow-xl max-w-md text-center">
-              <div className="w-16 h-16 rounded-full gold-gradient flex items-center justify-center mx-auto mb-4">
-                <Lock className="w-8 h-8 text-white" />
-              </div>
-              <h2 className="text-xl font-bold text-[#252525] mb-2">Unlock Your Complete Combined Report</h2>
-              <p className="text-sm text-[#77736B] mb-4">See where Astrology, Numerology, and Palmistry converge. Discover agreements, complementary insights, and honest disagreements across all three systems.</p>
-              <p className="text-2xl font-bold text-[#C6A15B] mb-1">$99 / year</p>
-              <p className="text-xs text-[#77736B] mb-4">Use coupon <span className="font-mono font-bold text-[#C6A15B]">ASTROFREE</span> for free access</p>
-              <Link href="/pricing" className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-[#C6A15B] text-white font-medium hover:bg-[#9E7938] transition-colors">
-                Unlock Premium <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
-          </div>
-          {/* Blurred preview */}
-          <div className="filter blur-sm pointer-events-none opacity-60">
-            <div className="space-y-4 p-4">
-              <div className="bg-white rounded-xl border border-[#E8DFCF] p-6 h-40" />
-              <div className="grid grid-cols-3 gap-4">
-                <div className="bg-white rounded-xl border border-[#E8DFCF] p-4 h-24" />
-                <div className="bg-white rounded-xl border border-[#E8DFCF] p-4 h-24" />
-                <div className="bg-white rounded-xl border border-[#E8DFCF] p-4 h-24" />
-              </div>
-              <div className="bg-white rounded-xl border border-[#E8DFCF] p-6 h-60" />
-            </div>
-          </div>
+      <div className="max-w-2xl mx-auto animate-fade-in">
+        <div className="bg-card rounded-2xl border border-border p-8 text-center card-shadow">
+          <div className="w-16 h-16 rounded-full gold-gradient flex items-center justify-center mx-auto mb-4"><Lock className="w-8 h-8 text-white" /></div>
+          <h2 className="text-xl font-bold text-text mb-2">Unlock the Combined Report</h2>
+          <p className="text-sm text-text-secondary mb-6 max-w-md mx-auto">See where Numerology, Vedic Astrology and Palmistry agree, overlap and disagree about you — theme by theme.</p>
+          <p className="text-xs text-text-secondary mb-4">Use coupon <span className="font-mono font-bold text-gold">ASTROFREE</span> for free access</p>
+          <Link href="/pricing" className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-gold text-white font-medium hover:bg-gold-dark">Unlock Premium <ArrowRight className="w-4 h-4" /></Link>
         </div>
       </div>
     );
   }
 
+  const availableCount = status ? Object.values(status).filter((s) => s.available).length : 0;
+
   return (
-    <div className="max-w-6xl mx-auto animate-fade-in">
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* Section Nav */}
-        <div className="lg:w-52 flex-shrink-0">
-          <div className="lg:sticky lg:top-24">
-            <div className="flex lg:flex-col overflow-x-auto lg:overflow-x-visible gap-1 pb-2 lg:pb-0">
-              {SECTIONS.map((s) => (
-                <button key={s} onClick={() => setActiveSection(s)}
-                  className={`px-3 py-2 text-sm font-medium whitespace-nowrap rounded-lg transition-all text-left ${
-                    activeSection === s ? "bg-[#C6A15B]/10 text-[#C6A15B]" : "text-[#77736B] hover:text-[#252525] hover:bg-white"
-                  }`}>{s}</button>
-              ))}
-            </div>
-            <button onClick={handleDownload}
-              className="hidden lg:flex items-center gap-2 w-full mt-4 px-4 py-2.5 rounded-lg bg-[#C6A15B] text-white text-sm font-medium hover:bg-[#9E7938] transition-colors">
-              <Download className="w-4 h-4" /> Download Report
-            </button>
+    <div className="max-w-6xl mx-auto animate-fade-in space-y-6">
+      <PageHero icon={FileBarChart} eyebrow="Cross-system analysis" title="Your Combined Reading"
+        subtitle="Claims from your three readings are aligned by theme, then compared for agreement, overlap, difference and contradiction.">
+        <div className="flex flex-wrap gap-2">
+        {report && !loading && <PrintButton label="Download PDF" tone="dark" />}
+        <button onClick={generate} disabled={loading || availableCount === 0} className="no-print shrink-0 inline-flex items-center gap-2 px-5 py-3 rounded-xl gold-gradient text-white font-semibold shadow-lg disabled:opacity-50">
+          <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />{report ? "Regenerate" : "Generate report"}
+        </button>
+        </div>
+      </PageHero>
+
+      {status && (
+        <div className="no-print grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {(Object.keys(MODULE_META) as ModuleKey[]).map((m) => {
+            const Meta = MODULE_META[m];
+            const s = status[m];
+            return (
+              <Link key={m} href={LINKS[m]} className={`rounded-xl border p-4 flex items-center gap-3 transition-all hover:card-shadow-hover ${s.available ? "bg-card border-border" : "border-dashed border-border bg-ivory"}`}>
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: `${Meta.color}1A` }}><Meta.icon className="w-5 h-5" style={{ color: Meta.color }} /></div>
+                <div><p className="text-sm font-semibold text-text">{Meta.label}</p><p className="text-xs text-text-secondary">{s.available ? `${s.claims} comparable claims` : "Not generated yet →"}</p></div>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+      {!status && !error && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3" aria-busy="true">
+          {[0, 1, 2].map((i) => <div key={i} className="h-[74px] rounded-xl border border-border bg-card animate-pulse" />)}
+        </div>
+      )}
+      <ErrorBanner message={error} />
+      {status && !report && !loading && (
+        <div className="rounded-2xl border border-dashed border-gold/40 bg-gradient-to-br from-[#FFFDF8] to-[#F6EEDD] p-8 text-center">
+          <div className="w-14 h-14 rounded-2xl gold-gradient mx-auto flex items-center justify-center shadow-lg shadow-gold/30 mb-4"><GitCompareArrows className="w-6 h-6 text-white" /></div>
+          <h3 className="text-lg font-bold text-text">{availableCount === 0 ? "Start with one reading" : `Ready to compare ${availableCount} of 3 readings`}</h3>
+          <p className="text-sm text-text-secondary max-w-lg mx-auto mt-1.5">
+            {availableCount === 0
+              ? "The combined report compares what your numerology, birth chart and palm say about you. Generate at least one of them first, then come back here."
+              : "Your report groups every claim by theme (career, relationships, mind, vitality, timing) and shows where the systems agree, overlap or disagree, plus how much each one contributed."}
+          </p>
+          {availableCount > 0 && availableCount < 3 && <p className="text-xs text-gold-dark mt-3">Tip: add the missing reading{availableCount === 2 ? "" : "s"} above for a fuller comparison.</p>}
+        </div>
+      )}
+      {loading && <LoadingStages stages={["Gathering claims from your three readings", "Aligning claims by theme", "Comparing the systems theme by theme", "Writing your combined reading"]} />}
+
+      {report && !loading && report.generation_status === "generated" && (
+        <section className="space-y-6 animate-fade-in">
+          <div className="rounded-2xl border border-gold/30 bg-gradient-to-br from-[#FFFDF8] to-[#F3EBDD] p-6 sm:p-8 card-shadow">
+            <h2 className="text-2xl sm:text-3xl font-bold text-text leading-tight">{report.headline}</h2>
+            <p className="mt-3 text-text-secondary leading-relaxed">{report.overview}</p>
+            <div className="mt-6 max-w-2xl"><p className="text-xs font-bold uppercase tracking-wide text-text-secondary mb-2">Overall contribution</p><ContributionBar contributions={report.overall_contributions} /></div>
           </div>
-        </div>
 
-        {/* Content */}
-        <div className="flex-1 space-y-4">
-          {activeSection === "Overview" && (
-            <div className="space-y-4">
-              <div className="bg-white rounded-xl border border-[#E8DFCF] p-6">
-                <div className="flex items-center gap-3 mb-3">
-                  <FileBarChart className="w-6 h-6 text-[#C6A15B]" />
-                  <h2 className="text-xl font-bold text-[#252525]">Combined Report</h2>
-                </div>
-                <div className="flex gap-2 mb-4">
-                  <SourceBadge source="astrology" />
-                  <SourceBadge source="numerology" />
-                  <SourceBadge source="palmistry" />
-                </div>
-                <p className="text-sm text-[#77736B] leading-relaxed">{d.overview}</p>
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="bg-white rounded-xl border border-[#E8DFCF] p-4 text-center">
-                  <Check className="w-5 h-5 text-[#4A7C59] mx-auto mb-1" />
-                  <p className="text-2xl font-bold text-[#C6A15B]">{d.agreements.length}</p>
-                  <p className="text-xs text-[#77736B]">Agreements</p>
-                </div>
-                <div className="bg-white rounded-xl border border-[#E8DFCF] p-4 text-center">
-                  <Sparkles className="w-5 h-5 text-[#C6A15B] mx-auto mb-1" />
-                  <p className="text-2xl font-bold text-[#C6A15B]">{d.complementary.length}</p>
-                  <p className="text-xs text-[#77736B]">Complementary</p>
-                </div>
-                <div className="bg-white rounded-xl border border-[#E8DFCF] p-4 text-center">
-                  <AlertTriangle className="w-5 h-5 text-[#D4A843] mx-auto mb-1" />
-                  <p className="text-2xl font-bold text-[#C6A15B]">{d.conflicts.length}</p>
-                  <p className="text-xs text-[#77736B]">Conflicts</p>
-                </div>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="rounded-2xl border border-success/25 bg-success/5 p-5">
+              <p className="text-sm font-bold text-success flex items-center gap-1.5 mb-3"><Link2 className="w-4 h-4" />Strongest agreements</p>
+              <ul className="space-y-2">{report.strongest_agreements.map((a, i) => <li key={i} className="text-sm text-text leading-relaxed">{a.text}</li>)}</ul>
             </div>
-          )}
-
-          {activeSection === "Profile" && (
-            <div className="bg-white rounded-xl border border-[#E8DFCF] p-6">
-              <h3 className="font-semibold text-[#252525] mb-3">Profile Summary</h3>
-              <p className="text-sm text-[#77736B] leading-relaxed">{d.profileSummary}</p>
+            <div className="rounded-2xl border border-error/25 bg-error/5 p-5">
+              <p className="text-sm font-bold text-error flex items-center gap-1.5 mb-3"><Zap className="w-4 h-4" />Notable tensions</p>
+              <ul className="space-y-2">{report.notable_tensions.map((a, i) => <li key={i} className="text-sm text-text leading-relaxed">{a.text}</li>)}</ul>
             </div>
-          )}
+          </div>
 
-          {["Astrology", "Numerology", "Palmistry"].map((system) => {
-            if (activeSection !== system) return null;
-            const findings = system === "Astrology" ? d.astrologyFindings : system === "Numerology" ? d.numerologyFindings : d.palmistryFindings;
-            const icon = system === "Astrology" ? Star : system === "Numerology" ? Hash : Hand;
-            const Icon = icon;
-            return (
-              <div key={system} className="bg-white rounded-xl border border-[#E8DFCF] p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <Icon className="w-5 h-5 text-[#C6A15B]" />
-                  <h3 className="font-semibold text-[#252525]">{system} Findings</h3>
-                  <SourceBadge source={system.toLowerCase()} />
-                </div>
-                <ul className="space-y-2">
-                  {findings.map((f, i) => (
-                    <li key={i} className="flex gap-2 text-sm text-[#77736B]">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#C6A15B] mt-2 flex-shrink-0" />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            );
-          })}
-
-          {activeSection === "Agreements" && (
-            <div className="space-y-4">
-              <h3 className="font-semibold text-[#252525] flex items-center gap-2"><Check className="w-5 h-5 text-[#4A7C59]" /> Cross-System Agreements</h3>
-              {d.agreements.map((a, i) => (
-                <div key={i} className="bg-white rounded-xl border border-[#E8DFCF] p-5 border-l-4 border-l-[#4A7C59]">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-[#4A7C59]/10 text-[#4A7C59] font-medium">Agreement</span>
-                    {a.sources.map((s) => <SourceBadge key={s} source={s} />)}
+          <div className="space-y-3">
+            <SectionTitle icon={GitCompareArrows} title="Theme by theme" subtitle="Each theme shows how the systems relate and how much each contributed." />
+            <div className="flex flex-wrap gap-3">{(Object.keys(RELATION) as Relation[]).map((r) => <span key={r} className="text-[11px] text-text-secondary flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{ background: RELATION[r].color }} />{RELATION[r].label}: {RELATION[r].description}</span>)}</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {report.themes.map((t) => (
+                <article key={t.theme} className="bg-card rounded-xl border border-border p-5 card-shadow" style={{ borderTop: `3px solid ${RELATION[t.relation].color}` }}>
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <h3 className="font-bold text-text">{t.label}</h3>
+                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full text-white" style={{ background: RELATION[t.relation].color }}>{RELATION[t.relation].label}</span>
                   </div>
-                  <h4 className="font-semibold text-[#C6A15B] mb-1">{a.title}</h4>
-                  <p className="text-sm text-[#77736B]">{a.content}</p>
+                  <p className="text-sm text-text-secondary leading-relaxed">{t.synthesis}</p>
+                  <div className="mt-3"><ContributionBar contributions={t.contributions} compact /></div>
+                  <div className="mt-1.5 flex gap-3">{t.contributions.filter((c) => c.percent > 0).map((c) => <span key={c.module} className="text-[11px] text-text-secondary">{MODULE_META[c.module].label} {c.percent}%</span>)}</div>
+                </article>
+              ))}
+            </div>
+          </div>
+
+          <CalculationGate title="How this report was built" description="See the method, how contribution percentages are computed, and every claim that was cited with the calculation it came from.">
+            <p className="text-sm text-text-secondary leading-relaxed flex gap-2"><Scale className="w-4 h-4 text-gold shrink-0 mt-0.5" />{report.method}</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {(Object.keys(MODULE_META) as ModuleKey[]).map((m) => (
+                <div key={m}>
+                  <p className="text-xs font-bold mb-1.5" style={{ color: MODULE_META[m].color }}>{MODULE_META[m].label}</p>
+                  <ul className="space-y-1.5">
+                    {Object.entries(report.claims).filter(([, c]) => c.module === m).map(([id, c]) => (
+                      <li key={id} className="text-[11px] rounded-lg border border-border bg-card p-2">
+                        <span className="font-semibold text-text">{c.trait}</span> <span className="text-text-secondary">— {c.claim}</span>
+                        <span className="block text-[10px] text-navy/70 mt-0.5">{c.basis} · weight {c.weight}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               ))}
             </div>
-          )}
+          </CalculationGate>
+        </section>
+      )}
 
-          {activeSection === "Complementary" && (
-            <div className="space-y-4">
-              <h3 className="font-semibold text-[#252525] flex items-center gap-2"><Sparkles className="w-5 h-5 text-[#C6A15B]" /> Complementary Findings</h3>
-              {d.complementary.map((c, i) => (
-                <div key={i} className="bg-white rounded-xl border border-[#E8DFCF] p-5 border-l-4 border-l-[#C6A15B]">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-[#C6A15B]/10 text-[#C6A15B] font-medium">Complementary</span>
-                    {c.sources.map((s) => <SourceBadge key={s} source={s} />)}
-                  </div>
-                  <h4 className="font-semibold text-[#C6A15B] mb-1">{c.title}</h4>
-                  <p className="text-sm text-[#77736B]">{c.content}</p>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {activeSection === "Conflicts" && (
-            <div className="space-y-4">
-              <h3 className="font-semibold text-[#252525] flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-[#D4A843]" /> Conflicting Findings</h3>
-              <p className="text-xs text-[#77736B]">Disagreements between systems are natural and informative. They highlight areas of nuance in your profile.</p>
-              {d.conflicts.map((c, i) => (
-                <div key={i} className="bg-white rounded-xl border border-[#E8DFCF] p-5 border-l-4 border-l-[#D4A843]">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-[#D4A843]/10 text-[#D4A843] font-medium">Conflicting</span>
-                    {c.sources.map((s) => <SourceBadge key={s} source={s} />)}
-                  </div>
-                  <h4 className="font-semibold text-[#D4A843] mb-1">{c.title}</h4>
-                  <p className="text-sm text-[#77736B]">{c.content}</p>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {(["Career", "Relationships", "Growth", "Guidance"] as const).map((section) => {
-            if (activeSection !== section) return null;
-            const data = section === "Career" ? d.careerOverview : section === "Relationships" ? d.relationshipOverview : section === "Growth" ? d.personalGrowth : d.generalGuidance;
-            const Icon = section === "Career" ? Briefcase : section === "Relationships" ? Heart : section === "Growth" ? TrendingUp : Compass;
-            return (
-              <div key={section} className="bg-white rounded-xl border border-[#E8DFCF] p-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <Icon className="w-5 h-5 text-[#C6A15B]" />
-                  <h3 className="font-semibold text-[#252525]">{data.title}</h3>
-                </div>
-                <div className="flex gap-2 mb-3">
-                  {data.sources.map((s) => <SourceBadge key={s} source={s} />)}
-                </div>
-                <p className="text-sm text-[#77736B] leading-relaxed">{data.content}</p>
-              </div>
-            );
-          })}
-
-          {activeSection === "Summary" && (
-            <div className="space-y-4">
-              <div className="bg-white rounded-xl border border-[#E8DFCF] p-6">
-                <h3 className="font-semibold text-[#252525] mb-3">Report Summary</h3>
-                <p className="text-sm text-[#77736B] leading-relaxed">{d.summary}</p>
-              </div>
-              <button onClick={handleDownload}
-                className="flex items-center gap-2 px-6 py-3 rounded-lg bg-[#C6A15B] text-white font-medium hover:bg-[#9E7938] transition-colors">
-                <Download className="w-4 h-4" /> Download Full Report (.txt)
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+      {report && !loading && report.generation_status !== "generated" && (
+        <p className="text-sm text-text-secondary bg-ivory rounded-xl p-4">
+          {report.generation_status === "no_readings" ? "Generate at least one reading first, then build the combined report." : "The report could not be written just now. Please try again in a minute."}
+        </p>
+      )}
     </div>
   );
 }

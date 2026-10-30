@@ -15,6 +15,8 @@ export default function PricingPage() {
   const [couponResult, setCouponResult] = useState<{ valid: boolean; discount: number; message: string } | null>(null);
   const [priceBreakdown, setPriceBreakdown] = useState<{ original: number; discount: number; final: number } | null>(null);
   const [activated, setActivated] = useState(false);
+  const [activating, setActivating] = useState(false);
+  const [activateError, setActivateError] = useState("");
 
   const handleApplyCoupon = () => {
     const result = validateCoupon(couponCode);
@@ -26,10 +28,18 @@ export default function PricingPage() {
     }
   };
 
-  const handleActivate = () => {
+  const handleActivate = async () => {
     if (!isAuthenticated) { router.push("/login"); return; }
-    activatePremiumAccess(couponCode || undefined);
-    setActivated(true);
+    if (!couponResult?.valid) {
+      setActivateError("Online payment isn't available yet. Apply a valid coupon code to activate Premium.");
+      return;
+    }
+    setActivating(true);
+    setActivateError("");
+    const result = await activatePremiumAccess(couponCode.trim());
+    setActivating(false);
+    if (result.ok) setActivated(true);
+    else setActivateError(result.error);
   };
 
   if (activated) {
@@ -43,7 +53,9 @@ export default function PricingPage() {
           <p className="text-sm text-[#77736B] mb-4">
             Your premium access is active until{" "}
             <span className="font-semibold text-[#C6A15B]">
-              {new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
+              {premium.expiresAt
+                ? new Date(premium.expiresAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+                : "—"}
             </span>
           </p>
           <p className="text-sm text-[#77736B] mb-6">You now have access to Combined Reports and AI Chatbot.</p>
@@ -170,17 +182,18 @@ export default function PricingPage() {
               )}
 
               {/* CTA */}
-              <button onClick={handleActivate}
-                className="w-full py-3 rounded-lg bg-[#C6A15B] text-white font-medium hover:bg-[#9E7938] transition-colors text-sm">
-                {priceBreakdown && couponResult?.valid ? "Activate Free Access" : `Subscribe for ${pricingConfig.currencySymbol}${pricingConfig.standardPrice}/${pricingConfig.period.toLowerCase()}`}
+              <button onClick={handleActivate} disabled={activating}
+                className="w-full py-3 rounded-lg bg-[#C6A15B] text-white font-medium hover:bg-[#9E7938] transition-colors text-sm disabled:opacity-60">
+                {activating ? "Activating…" : priceBreakdown && couponResult?.valid ? "Activate Free Access" : `Subscribe for ${pricingConfig.currencySymbol}${pricingConfig.standardPrice}/${pricingConfig.period.toLowerCase()}`}
               </button>
+              {activateError && <p role="alert" className="mt-2 text-xs text-[#C45B5B] flex items-start gap-1"><X className="w-3.5 h-3.5 shrink-0 mt-px" />{activateError}</p>}
             </div>
 
             {/* Trust badges */}
             <div className="flex items-center justify-center gap-4 mt-5 pt-4 border-t border-[#E8DFCF]">
               <span className="flex items-center gap-1 text-[10px] text-[#77736B]"><Shield className="w-3 h-3" /> Secure</span>
               <span className="flex items-center gap-1 text-[10px] text-[#77736B]"><Sparkles className="w-3 h-3" /> Instant Access</span>
-              <span className="flex items-center gap-1 text-[10px] text-[#C6A15B] font-medium">Demo Mode</span>
+              <span className="flex items-center gap-1 text-[10px] text-[#C6A15B] font-medium">Coupon activation</span>
             </div>
           </div>
         </div>

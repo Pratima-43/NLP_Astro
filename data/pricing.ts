@@ -11,8 +11,8 @@ export const pricingConfig: PricingConfig = {
     'Unlimited AI Astrologer Chatbot Consultations with contextual chart awareness',
     'Deep-dive Planetary Transits, Vimshottari Dasha, & Nakshatra analysis',
     'Cross-System Life Alignment, Synergy & Contradiction Resolution',
-    'Downloadable Premium Astrological Dossier (PDF)',
-    'Priority Support & Personalized Astrological Guidance',
+    'Downloadable PDF of every reading and your Combined Report',
+    'Detailed calculation and source evidence behind every prediction',
   ],
   coupon: {
     code: 'ASTROFREE',

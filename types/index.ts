@@ -18,6 +18,18 @@ export interface UserProfile {
   dominantHand?: "left" | "right";
   profileImage?: string;
   timeOfBirthUnknown?: boolean;
+  onboarded?: boolean;
+  authProvider?: "local" | "supabase";
+  hasPassword?: boolean;
+  notificationPrefs?: NotificationPrefs;
+  premium?: PremiumEntitlement;
+}
+
+export interface NotificationPrefs {
+  reading_reminders: boolean;
+  progress_updates: boolean;
+  premium_offers: boolean;
+  security_emails: boolean;
 }
 
 // ── Astrology ─────────────────────────────────────────────────
@@ -236,9 +248,9 @@ export interface PricingConfig {
 
 export interface PremiumEntitlement {
   isActive: boolean;
-  activatedAt?: string;
-  expiresAt?: string;
-  couponUsed?: string;
+  activatedAt?: string | null;
+  expiresAt?: string | null;
+  couponUsed?: string | null;
   plan: string;
 }
 

@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sparkles, Calendar, Clock, MapPin, User, Upload, Check, ArrowRight, ArrowLeft, Hand, X } from "lucide-react";
 import { useApp } from "@/context/AppContext";
+import { DateField, TimeField } from "@/components/ui/DateTimeFields";
+import { ACCEPTED_IMAGE_TYPES, imageFileToDataUrl } from "@/lib/image";
 
 const PLACE_SUGGESTIONS = [
   "Jaipur, India", "Mumbai, India", "Delhi, India", "Bangalore, India",
@@ -19,7 +21,15 @@ const steps = [
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { user, completeOnboarding, setPalmImageUrl } = useApp();
+  const { user, isAuthenticated, isOnboarded, completeOnboarding, setPalmImageUrl } = useApp();
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+
+  // Onboarding saves to the signed-in account; send visitors to sign in, and finished users onward.
+  useEffect(() => {
+    if (!isAuthenticated) router.replace("/login");
+    else if (isOnboarded && !saving) router.replace("/dashboard");
+  }, [isAuthenticated, isOnboarded, saving, router]);
 
   const [currentStep, setCurrentStep] = useState(1);
   const [name, setName] = useState(user?.name || "");
@@ -54,8 +64,10 @@ export default function OnboardingPage() {
     }
   };
 
-  const handleComplete = () => {
-    completeOnboarding({
+  const handleComplete = async () => {
+    setSaving(true);
+    setSaveError("");
+    const result = await completeOnboarding({
       name: name.trim(),
       dateOfBirth: dob,
       timeOfBirth: timeUnknown ? "" : timeOfBirth,
@@ -63,18 +75,24 @@ export default function OnboardingPage() {
       placeOfBirth: place.trim(),
       gender: gender || undefined,
       dominantHand: dominantHand,
-      palmImageUrl: palmPreview || undefined,
     });
+    if (!result.ok) {
+      setSaving(false);
+      setSaveError(result.error);
+      return;
+    }
     if (palmPreview) setPalmImageUrl(palmPreview);
     router.push("/dashboard");
   };
 
-  const handlePalmUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePalmUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setPalmPreview(reader.result as string);
-      reader.readAsDataURL(file);
+    e.target.value = "";
+    if (!file || !ACCEPTED_IMAGE_TYPES.includes(file.type)) return;
+    try {
+      setPalmPreview(await imageFileToDataUrl(file));
+    } catch {
+      // Unreadable image: keep the step optional and let the user pick another.
     }
   };
 
@@ -151,10 +169,7 @@ export default function OnboardingPage() {
                 <label className="block text-sm font-medium text-[#252525] mb-1.5">
                   <Calendar className="w-4 h-4 inline mr-1.5 text-[#C6A15B]" />Date of Birth *
                 </label>
-                <input
-                  type="date" value={dob} onChange={(e) => setDob(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-lg border border-[#E8DFCF] focus:border-[#C6A15B] focus:ring-2 focus:ring-[#C6A15B]/20 outline-none transition-all text-[#252525] bg-white"
-                />
+                <DateField value={dob} onChange={setDob} />
                 {errors.dob && <p className="text-[#C45B5B] text-xs mt-1">{errors.dob}</p>}
               </div>
 
@@ -162,11 +177,7 @@ export default function OnboardingPage() {
                 <label className="block text-sm font-medium text-[#252525] mb-1.5">
                   <Clock className="w-4 h-4 inline mr-1.5 text-[#C6A15B]" />Time of Birth
                 </label>
-                <input
-                  type="time" value={timeOfBirth} onChange={(e) => setTimeOfBirth(e.target.value)}
-                  disabled={timeUnknown}
-                  className="w-full px-4 py-2.5 rounded-lg border border-[#E8DFCF] focus:border-[#C6A15B] focus:ring-2 focus:ring-[#C6A15B]/20 outline-none transition-all text-[#252525] bg-white disabled:opacity-50 disabled:bg-gray-50"
-                />
+                <TimeField value={timeOfBirth} onChange={setTimeOfBirth} disabled={timeUnknown} />
                 <label className="flex items-center gap-2 mt-2 cursor-pointer">
                   <input type="checkbox" checked={timeUnknown} onChange={(e) => setTimeUnknown(e.target.checked)}
                     className="w-4 h-4 rounded border-[#E8DFCF] text-[#C6A15B] focus:ring-[#C6A15B]" />
@@ -212,7 +223,7 @@ export default function OnboardingPage() {
               <div>
                 <label className="block text-sm font-medium text-[#252525] mb-1.5">Gender (optional)</label>
                 <select value={gender} onChange={(e) => setGender(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-lg border border-[#E8DFCF] focus:border-[#C6A15B] focus:ring-2 focus:ring-[#C6A15B]/20 outline-none transition-all text-[#252525] bg-white">
+                  className="select-gold w-full px-4 py-2.5 rounded-lg border border-[#E8DFCF] focus:border-[#C6A15B] focus:ring-2 focus:ring-[#C6A15B]/20 outline-none transition-all text-[#252525] bg-white">
                   <option value="">Prefer not to say</option>
                   <option value="male">Male</option>
                   <option value="female">Female</option>
@@ -232,6 +243,7 @@ export default function OnboardingPage() {
 
               {palmPreview ? (
                 <div className="relative">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- local data URL preview */}
                   <img src={palmPreview} alt="Palm preview" className="w-full h-64 object-cover rounded-xl border border-[#E8DFCF]" />
                   <button onClick={() => setPalmPreview(null)}
                     className="absolute top-2 right-2 p-1.5 bg-white rounded-full shadow-md hover:bg-red-50 transition-colors">
@@ -243,7 +255,7 @@ export default function OnboardingPage() {
                   <Upload className="w-10 h-10 text-[#C6A15B] mb-2" />
                   <span className="text-sm font-medium text-[#252525]">Click to upload palm image</span>
                   <span className="text-xs text-[#77736B] mt-1">PNG, JPG up to 10MB</span>
-                  <input type="file" accept="image/*" onChange={handlePalmUpload} className="hidden" />
+                  <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePalmUpload} className="hidden" />
                 </label>
               )}
 
@@ -280,9 +292,10 @@ export default function OnboardingPage() {
             >
               <ArrowLeft className="w-4 h-4" /> Back
             </button>
-            <button onClick={handleNext}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium bg-[#C6A15B] text-white hover:bg-[#9E7938] transition-colors shadow-sm">
-              {currentStep === 3 ? "Complete Setup" : "Continue"}
+            {saveError && <p role="alert" className="text-xs text-[#C45B5B] flex-1 text-center px-2">{saveError}</p>}
+            <button onClick={handleNext} disabled={saving}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium bg-[#C6A15B] text-white hover:bg-[#9E7938] transition-colors shadow-sm disabled:opacity-60">
+              {currentStep === 3 ? (saving ? "Saving…" : "Complete Setup") : "Continue"}
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>

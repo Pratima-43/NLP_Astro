@@ -11,6 +11,9 @@ import {
   Eye,
   EyeOff,
   ArrowLeft,
+  Hash,
+  Star,
+  Hand,
 } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 
@@ -53,60 +56,63 @@ export default function LoginPage() {
 
     if (!password) {
       errs.password = "Password is required";
-    } else if (password.length < 6) {
-      errs.password = "Password must be at least 6 characters";
+    } else if (mode === "signup" && password.length < 8) {
+      errs.password = "Password must be at least 8 characters";
+    } else if (mode === "signup" && (!/[A-Za-z]/.test(password) || !/\d/.test(password))) {
+      errs.password = "Use both letters and numbers";
     }
 
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
 
     setIsSubmitting(true);
     setErrors({});
-
-    try {
-      if (mode === "login") {
-        const success = login(email.trim(), password);
-        if (success) {
-          // Check storage for persisted onboarding status
-          const wasOnboarded =
-            typeof window !== "undefined" &&
-            localStorage.getItem("astroverse_onboarded") === "true";
-          router.push(wasOnboarded ? "/dashboard" : "/onboarding");
-        } else {
-          setErrors({ form: "Invalid login credentials. Please check your email." });
-          setIsSubmitting(false);
-        }
-      } else {
-        const success = signup(name.trim(), email.trim(), password);
-        if (success) {
-          router.push("/onboarding");
-        } else {
-          setErrors({ form: "Could not create account. Please verify all fields." });
-          setIsSubmitting(false);
-        }
-      }
-    } catch {
-      setErrors({ form: "An unexpected error occurred. Please try again." });
+    const result = mode === "login"
+      ? await login(email.trim(), password)
+      : await signup(name.trim(), email.trim(), password);
+    if (!result.ok) {
+      setErrors({ form: result.error });
       setIsSubmitting(false);
     }
-  };
-
-  const handleFillDemo = () => {
-    setEmail("seeker@astroverse.io");
-    setPassword("cosmic123");
-    if (mode === "signup") {
-      setName("Aarav Sharma");
-    }
-    setErrors({});
+    // On success the session effect above redirects to the dashboard or onboarding.
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF7F0] flex flex-col justify-center items-center py-12 px-4 sm:px-6 lg:px-8 relative star-field selection:bg-[#C6A15B] selection:text-white">
+    <div className="min-h-screen bg-[#FAF7F0] grid lg:grid-cols-[1fr_1.1fr] selection:bg-[#C6A15B] selection:text-white">
+      {/* Brand panel (desktop) */}
+      <aside className="hidden lg:flex relative overflow-hidden bg-[#171B2D] text-[#FAF7F0] flex-col justify-between p-12">
+        <div className="absolute -top-32 -right-32 w-[480px] h-[480px] rounded-full bg-[#C6A15B]/15 blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[440px] h-[440px] rounded-full border border-dashed border-[#C6A15B]/20" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[290px] h-[290px] rounded-full border border-[#FAF7F0]/10" />
+        <Link href="/" className="relative flex items-center gap-2.5 w-fit">
+          <span className="w-10 h-10 rounded-xl gold-gradient flex items-center justify-center shadow-lg"><Sparkles className="w-5 h-5 text-white" /></span>
+          <span className="text-xl font-extrabold tracking-tight">Astro<span className="text-[#C6A15B]">Verse</span></span>
+        </Link>
+        <div className="relative max-w-md">
+          <p className="text-xs uppercase tracking-[0.25em] text-[#C6A15B] font-semibold mb-3">Three traditions · one reading</p>
+          <h2 className="text-4xl font-bold leading-tight">Your numbers, your stars and your hand, read together.</h2>
+          <div className="mt-8 space-y-3">
+            {[
+              { icon: Hash, title: "Numerology", text: "Moolank, Bhagyank, Namank and Personal Year" },
+              { icon: Star, title: "Vedic Astrology", text: "Sidereal chart, yogas and Vimshottari dashas" },
+              { icon: Hand, title: "Palmistry", text: "Lines and mounts detected from your photo" },
+            ].map(({ icon: Icon, title, text }) => (
+              <div key={title} className="flex items-center gap-3 rounded-xl bg-white/5 border border-white/10 px-4 py-3 backdrop-blur">
+                <span className="w-9 h-9 rounded-lg bg-[#C6A15B]/15 flex items-center justify-center"><Icon className="w-4 h-4 text-[#E8C77E]" /></span>
+                <div><p className="text-sm font-semibold">{title}</p><p className="text-xs text-[#FAF7F0]/60">{text}</p></div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <p className="relative text-xs text-[#FAF7F0]/50">Every prediction shows the source it came from and how it was calculated.</p>
+      </aside>
+
+      <div className="flex flex-col justify-center items-center py-12 px-4 sm:px-6 lg:px-8 relative star-field">
       {/* Back to Home Link */}
       <div className="w-full max-w-md mb-4 flex justify-between items-center">
         <Link
@@ -117,14 +123,6 @@ export default function LoginPage() {
           <span>Back to Home</span>
         </Link>
 
-        {/* Demo Fast Fill Button */}
-        <button
-          type="button"
-          onClick={handleFillDemo}
-          className="text-xs text-[#9E7938] hover:text-[#C6A15B] underline underline-offset-2 transition-colors font-medium"
-        >
-          Fill Demo Credentials
-        </button>
       </div>
 
       {/* Main Card */}
@@ -209,7 +207,8 @@ export default function LoginPage() {
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. Aarav Sharma"
+                    placeholder="Your full name"
+                    autoComplete="name"
                     className={`w-full pl-10 pr-3.5 py-2.5 rounded-xl border ${
                       errors.name
                         ? "border-[#C45B5B] focus:ring-[#C45B5B]"
@@ -242,7 +241,8 @@ export default function LoginPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="seeker@astroverse.io"
+                  placeholder="you@example.com"
+                  autoComplete="email"
                   className={`w-full pl-10 pr-3.5 py-2.5 rounded-xl border ${
                     errors.email
                       ? "border-[#C45B5B] focus:ring-[#C45B5B]"
@@ -267,9 +267,9 @@ export default function LoginPage() {
                   Password
                 </label>
                 {mode === "login" && (
-                  <span className="text-[11px] text-[#77736B] hover:text-[#C6A15B] cursor-pointer">
+                  <Link href="/forgot-password" className="text-[11px] text-[#77736B] hover:text-[#C6A15B]">
                     Forgot password?
-                  </span>
+                  </Link>
                 )}
               </div>
               <div className="relative">
@@ -281,7 +281,8 @@ export default function LoginPage() {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="At least 6 characters"
+                  placeholder={mode === "signup" ? "8+ characters, letters and numbers" : "Your password"}
+                  autoComplete={mode === "signup" ? "new-password" : "current-password"}
                   className={`w-full pl-10 pr-10 py-2.5 rounded-xl border ${
                     errors.password
                       ? "border-[#C45B5B] focus:ring-[#C45B5B]"
@@ -362,10 +363,10 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Demo Helper Footer Bar */}
         <div className="bg-[#FAF7F0] px-6 py-3 border-t border-[#E8DFCF] text-center text-[11px] text-[#77736B]">
-          Demo: Enter any valid email containing &lsquo;@&rsquo; and 6+ character password.
+          Your account and readings are stored securely on the AstroVerse server. Passwords are never stored in plain text.
         </div>
+      </div>
       </div>
     </div>
   );
