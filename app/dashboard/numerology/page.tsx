@@ -40,13 +40,51 @@ function Medallion({ number, size = "lg" }: { number: number; size?: "lg" | "sm"
   );
 }
 
+// Mirrors CHALDEAN_VALUES in backend/app/modules/numerology/calculations.py; no letter maps to 9.
+const CHALDEAN_TABLE: Array<[number, string]> = [
+  [1, "AIJQY"], [2, "BKR"], [3, "CGLS"], [4, "DMT"], [5, "EHNX"], [6, "UVW"], [7, "OZ"], [8, "FP"],
+];
+
+function ChaldeanMapping({ namank, name }: { namank: NumerologyReport["components"]["namank"]; name: string }) {
+  const used = new Set(namank.letter_values?.map((l) => l.letter));
+  return (
+    <div className="bg-card rounded-2xl border border-border card-shadow p-5 sm:p-6">
+      <div className="mb-4"><SectionTitle icon={Hash} title="Chaldean letter mapping" subtitle={`How "${namank.normalized_name ?? name}" becomes Namank ${namank.number}. Letters in your name are highlighted.`} /></div>
+      <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+        {CHALDEAN_TABLE.map(([value, letters]) => (
+          <div key={value} className="rounded-xl border border-gold/25 bg-ivory/60 p-2.5 text-center">
+            <div className="text-lg font-bold text-gold-dark">{value}</div>
+            <div className="mt-1 flex flex-wrap justify-center gap-1">
+              {letters.split("").map((ch) => (
+                <span key={ch} className={`w-6 h-6 rounded-md text-xs font-semibold flex items-center justify-center ${used.has(ch) ? "bg-gold text-white" : "bg-white text-text-secondary border border-border"}`}>{ch}</span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      {namank.letter_values && (
+        <div className="mt-5 flex flex-wrap items-center gap-1.5">
+          {namank.letter_values.map((item, i) => (
+            <div key={`${item.letter}-${i}`} className="w-9 rounded-lg bg-ivory border border-gold/25 py-1.5 text-center">
+              <div className="font-semibold text-sm text-text">{item.letter}</div><div className="text-[11px] text-gold-dark">{item.value}</div>
+            </div>
+          ))}
+          <span className="px-1 text-text-secondary">=</span>
+          <div className="rounded-lg bg-gold/15 border border-gold/40 px-3 py-1.5 text-center"><div className="text-[10px] text-text-secondary">Total</div><div className="font-bold text-gold-dark">{namank.compound_number}</div></div>
+          <span className="px-1 text-text-secondary">→</span>
+          <Medallion number={namank.number} size="sm" />
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CitedList({ items, tone }: { items: CitedItem[]; tone: "strength" | "challenge" | "theme" }) {
   const styles = {
     strength: { dot: "bg-success", border: "border-success/20" },
     challenge: { dot: "bg-error", border: "border-error/20" },
     theme: { dot: "bg-gold", border: "border-gold/25" },
   }[tone];
-  if (!items.length) return <p className="text-sm text-text-secondary italic">No source-backed items for this section.</p>;
   return (
     <ul className="space-y-2.5">
       {items.map((item, i) => (
@@ -202,6 +240,8 @@ export default function NumerologyPage() {
             ) : null}
           </div>
 
+          <ChaldeanMapping namank={result.components.namank} name={result.full_name} />
+
           {/* Component detail */}
           {calc && reading && (
             <div className="bg-card rounded-2xl border border-border card-shadow overflow-hidden">
@@ -230,11 +270,23 @@ export default function NumerologyPage() {
                 ) : (
                   <>
                     {reading.summary && <p className="text-[15px] text-text leading-relaxed bg-ivory/70 border-l-4 border-gold rounded-r-xl p-4">{reading.summary}</p>}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-                      <div><h4 className="text-sm font-bold text-success mb-2.5 flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4" />Strengths</h4><CitedList items={reading.strengths} tone="strength" /></div>
-                      <div><h4 className="text-sm font-bold text-error mb-2.5 flex items-center gap-1.5"><TriangleAlert className="w-4 h-4" />Challenges</h4><CitedList items={reading.challenges} tone="challenge" /></div>
-                      <div><h4 className="text-sm font-bold text-gold-dark mb-2.5 flex items-center gap-1.5"><Sparkles className="w-4 h-4" />Key themes</h4><CitedList items={reading.key_themes} tone="theme" /></div>
-                    </div>
+                    {(() => {
+                      // Some records list no challenges (or strengths); drop empty columns rather than show a placeholder.
+                      const columns = [
+                        { items: reading.strengths, tone: "strength" as const, label: "Strengths", icon: CheckCircle2, color: "text-success" },
+                        { items: reading.challenges, tone: "challenge" as const, label: "Challenges", icon: TriangleAlert, color: "text-error" },
+                        { items: reading.key_themes, tone: "theme" as const, label: "Key themes", icon: Sparkles, color: "text-gold-dark" },
+                      ].filter((c) => c.items.length);
+                      if (!columns.length) return null;
+                      const grid = { 1: "lg:grid-cols-1", 2: "lg:grid-cols-2", 3: "lg:grid-cols-3" }[columns.length];
+                      return (
+                        <div className={`grid grid-cols-1 ${grid} gap-5`}>
+                          {columns.map(({ items, tone, label, icon: Icon, color }) => (
+                            <div key={tone}><h4 className={`text-sm font-bold ${color} mb-2.5 flex items-center gap-1.5`}><Icon className="w-4 h-4" />{label}</h4><CitedList items={items} tone={tone} /></div>
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </>
                 )}
 

@@ -221,9 +221,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const resetPassword = useCallback(async (token: string, password: string): Promise<Result> => {
     try {
       if (supabaseEnabled) {
-        // Supabase signs the user in from the emailed link; the new password is set on that session.
-        const { error } = await getSupabase()!.auth.updateUser({ password });
-        if (error) return { ok: false, error: error.message };
+        const supabase = getSupabase()!;
+        // token_hash links are redeemed only now, on submit, so a mail scanner opening the link can't use it up.
+        if (token) {
+          const { error: verifyError } = await supabase.auth.verifyOtp({ token_hash: token, type: "recovery" });
+          if (verifyError) return { ok: false, error: "This reset link is invalid or has expired. Request a new one." };
+        }
+        const { error } = await supabase.auth.updateUser({ password });
+        if (error) {
+          const expired = /session missing|expired|invalid/i.test(error.message);
+          return { ok: false, error: expired ? "This reset link is invalid or has expired. Request a new one." : error.message };
+        }
         await refreshUser();
         return { ok: true };
       }

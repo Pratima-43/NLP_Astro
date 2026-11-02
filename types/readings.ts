@@ -319,6 +319,14 @@ export interface CombinedReportResult {
   claims: Record<string, IntegratedClaim>;
   method: string;
   generation_status: string;
+  // Added with the explained report; older saved reports don't have these.
+  profile_facts?: Record<ModuleKey, ProfileFact[]>;
+  system_summaries?: Partial<Record<ModuleKey, string>>;
+  fact_meanings?: Record<string, { meaning: string; claim_ids: string[] }>;
+  timeline?: Array<{ period: string; title: string; text: string; claim_ids: string[] }>;
+  guidance?: Array<{ text: string; claim_ids: string[] }>;
 }
+
+export interface ProfileFact { module: ModuleKey; key: string; label: string; value: string; concept: string }
 
 export type IntegrationStatus = Record<ModuleKey, { available: boolean; reading_id: number | null; claims: number }>;

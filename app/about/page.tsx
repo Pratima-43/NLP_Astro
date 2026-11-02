@@ -21,7 +21,7 @@ export default function AboutPage() {
         <ul>
           <li><strong>Numerology:</strong> the Chaldean letter table and reduction rules, with interpretations drawn from the research team&apos;s Numerology Guide.</li>
           <li><strong>Astrology:</strong> planetary positions from the Swiss Ephemeris in the Lahiri sidereal zodiac, with whole-sign houses and mean lunar nodes, read through classical Parashari rules.</li>
-          <li><strong>Palmistry:</strong> hand landmarks from Google MediaPipe, crease tracing with ridge filters, and interpretations quoted from Cheiro&apos;s <em>Palmistry for All</em> (public domain, Project Gutenberg #20480).</li>
+          <li><strong>Palmistry:</strong> hand landmarks from Google MediaPipe; a palm-line model trained on the <a href="https://universe.roboflow.com/palmlinedetection/palm-lines-recognition-azgh0" className="text-[#9E7938] underline" target="_blank" rel="noreferrer">Palm lines recognition</a> dataset by palmlinedetection on Roboflow Universe (CC BY 4.0); ridge filters for crease depth; and interpretations quoted from Cheiro&apos;s <em>Palmistry for All</em> (public domain, Project Gutenberg #20480).</li>
           <li><strong>Writing:</strong> a large language model turns the selected evidence into readable text. It may only cite claims supplied to it, and uncited statements are removed.</li>
         </ul>
       </InfoSection>

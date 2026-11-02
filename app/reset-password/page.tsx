@@ -6,17 +6,30 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Lock } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { apiFetch } from "@/lib/api";
-import { supabaseEnabled } from "@/lib/supabase";
+import { getSupabase, supabaseEnabled } from "@/lib/supabase";
 import { AuthShell, authInputClass } from "@/components/auth/AuthShell";
 
-type LinkState = { status: "checking" } | { status: "valid"; hint?: string } | { status: "invalid" };
+type LinkState = { status: "checking" } | { status: "valid"; hint?: string } | { status: "invalid"; reason?: string };
+
+/** Supabase reports a dead link in the URL fragment, e.g. #error_code=otp_expired&error_description=... */
+function fragmentError(): string | null {
+  if (typeof window === "undefined" || !window.location.hash.includes("error")) return null;
+  const params = new URLSearchParams(window.location.hash.slice(1));
+  return params.get("error_description")?.replace(/\+/g, " ") ?? params.get("error") ?? "This reset link is invalid or has expired.";
+}
 
 function ResetForm() {
   const router = useRouter();
-  const token = useSearchParams().get("token") ?? "";
+  const params = useSearchParams();
+  // AstroVerse links carry ?token=; Supabase links built from the email template carry ?token_hash=.
+  const token = params.get("token") ?? params.get("token_hash") ?? "";
   const { resetPassword } = useApp();
-  // Supabase links sign the user in through the URL fragment, so there is no token to pre-check.
-  const [link, setLink] = useState<LinkState>(() => (supabaseEnabled ? { status: "valid" } : token ? { status: "checking" } : { status: "invalid" }));
+  const [link, setLink] = useState<LinkState>(() => {
+    const dead = fragmentError();
+    if (dead) return { status: "invalid", reason: dead };
+    if (supabaseEnabled) return token ? { status: "valid" } : { status: "checking" };
+    return token ? { status: "checking" } : { status: "invalid" };
+  });
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [show, setShow] = useState(false);
@@ -24,11 +37,25 @@ function ResetForm() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (supabaseEnabled || !token) return;
+    if (link.status !== "checking") return;
+    if (supabaseEnabled) {
+      // Older-style Supabase links sign the user in from the URL fragment; without that session the link is unusable.
+      const supabase = getSupabase()!;
+      let settled = false;
+      const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+        if (!settled && session && (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN")) { settled = true; setLink({ status: "valid" }); }
+      });
+      supabase.auth.getSession().then(({ data }) => {
+        if (settled) return;
+        settled = true;
+        setLink(data.session ? { status: "valid" } : { status: "invalid", reason: "Open the reset link from your email to continue." });
+      });
+      return () => sub.subscription.unsubscribe();
+    }
     apiFetch<{ valid: boolean; email_hint?: string }>(`/auth/password/reset/${encodeURIComponent(token)}`)
       .then((r) => setLink(r.valid ? { status: "valid", hint: r.email_hint } : { status: "invalid" }))
       .catch(() => setLink({ status: "invalid" }));
-  }, [token]);
+  }, [link.status, token]);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -49,7 +76,8 @@ function ResetForm() {
   if (link.status === "invalid") {
     return (
       <div className="text-center space-y-4">
-        <p className="text-sm text-[#252525]">This reset link is invalid or has expired. Links work once and only for a limited time.</p>
+        <p className="text-sm text-[#252525]">{link.reason && !/expired|invalid/i.test(link.reason) ? link.reason : "This reset link is invalid or has expired."}</p>
+        <p className="text-xs text-[#77736B]">Each link works once and only for a limited time. Use the newest email, and open it only once.</p>
         <Link href="/forgot-password" className="inline-block px-5 py-2.5 rounded-lg bg-[#C6A15B] text-white text-sm font-medium hover:bg-[#9E7938]">Request a new link</Link>
       </div>
     );

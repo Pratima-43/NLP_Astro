@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, FileBarChart, GitCompareArrows, Link2, Lock, RefreshCw, Scale, Zap } from "lucide-react";
+import { ArrowRight, BookOpen, CalendarClock, FileBarChart, GitCompareArrows, Lightbulb, Link2, Lock, RefreshCw, Scale, Zap } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { apiFetch, postJson } from "@/lib/api";
 import { CalculationGate, ContributionBar, ErrorBanner, LoadingStages, MODULE_META, PageHero, PrintButton, SectionTitle } from "@/components/readings/ReadingUI";
@@ -16,6 +16,46 @@ const RELATION: Record<Relation, { label: string; color: string; description: st
   single_source: { label: "Single source", color: "#9B9488", description: "Only one system speaks to this" },
 };
 const LINKS: Record<ModuleKey, string> = { numerology: "/dashboard/numerology", astrology: "/dashboard/astrology", palmistry: "/dashboard/palmistry" };
+const SYSTEM_INTROS: Record<ModuleKey, string> = {
+  numerology: "Numerology turns your date of birth and name into single-digit numbers. Each number from 1 to 9 is linked with a planet and a set of traits. Vedic numerology reads four of them: your inner self, your life direction, your public image and the current year.",
+  astrology: "Vedic astrology (Jyotish) maps where the Sun, Moon and planets stood at the exact time and place of your birth, using the star-based sidereal zodiac. It describes your temperament and, through the dasha system, which themes are active in each period of your life.",
+  palmistry: "Palmistry reads the shape of your hand and the main lines and mounts of your palm. AstroVerse measures these from your photo, then looks up what classical palmistry texts say about each feature.",
+};
+
+function ReadingExplained({ module, report }: { module: ModuleKey; report: CombinedReportResult }) {
+  const facts = report.profile_facts?.[module] ?? [];
+  if (!facts.length) return null;
+  const Meta = MODULE_META[module];
+  return (
+    <article className="bg-card rounded-2xl border border-border card-shadow overflow-hidden" style={{ borderTop: `3px solid ${Meta.color}` }}>
+      <div className="p-5 sm:p-6 border-b border-border">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: `${Meta.color}1A` }}><Meta.icon className="w-5 h-5" style={{ color: Meta.color }} /></div>
+          <h3 className="text-lg font-bold text-text">{Meta.label}</h3>
+        </div>
+        <p className="mt-3 text-xs text-text-secondary leading-relaxed">{SYSTEM_INTROS[module]}</p>
+        {report.system_summaries?.[module] && <p className="mt-3 text-[15px] text-text leading-relaxed">{report.system_summaries[module]}</p>}
+      </div>
+      <div className="divide-y divide-border">
+        {facts.map((f) => {
+          const meaning = report.fact_meanings?.[f.key]?.meaning;
+          return (
+            <div key={f.key} className="p-5 sm:px-6 grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-x-6 gap-y-2">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide" style={{ color: Meta.color }}>{f.label}</p>
+                <p className="text-sm font-semibold text-text mt-1">{f.value}</p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-xs text-text-secondary leading-relaxed"><span className="font-semibold text-text">What it is: </span>{f.concept}</p>
+                {meaning && <p className="text-sm text-text leading-relaxed"><span className="font-semibold">What it says about you: </span>{meaning}</p>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </article>
+  );
+}
 
 export default function CombinedReportPage() {
   const { premium } = useApp();
@@ -100,7 +140,7 @@ export default function CombinedReportPage() {
           {availableCount > 0 && availableCount < 3 && <p className="text-xs text-gold-dark mt-3">Tip: add the missing reading{availableCount === 2 ? "" : "s"} above for a fuller comparison.</p>}
         </div>
       )}
-      {loading && <LoadingStages stages={["Gathering claims from your three readings", "Aligning claims by theme", "Comparing the systems theme by theme", "Writing your combined reading"]} />}
+      {loading && <LoadingStages stages={["Gathering claims from your three readings", "Explaining each reading in plain language", "Aligning claims by theme", "Comparing the systems theme by theme", "Writing your combined reading"]} />}
 
       {report && !loading && report.generation_status === "generated" && (
         <section className="space-y-6 animate-fade-in">
@@ -109,6 +149,31 @@ export default function CombinedReportPage() {
             <p className="mt-3 text-text-secondary leading-relaxed">{report.overview}</p>
             <div className="mt-6 max-w-2xl"><p className="text-xs font-bold uppercase tracking-wide text-text-secondary mb-2">Overall contribution</p><ContributionBar contributions={report.overall_contributions} /></div>
           </div>
+
+          {report.profile_facts && (
+            <div className="space-y-3">
+              <SectionTitle icon={BookOpen} title="Your readings, explained" subtitle="Each system's key findings: what every term means, and what it says about you." />
+              {(Object.keys(MODULE_META) as ModuleKey[]).map((m) => <ReadingExplained key={m} module={m} report={report} />)}
+            </div>
+          )}
+
+          {!!report.timeline?.length && (
+            <div className="space-y-3">
+              <SectionTitle icon={CalendarClock} title="What the coming periods suggest" subtitle="Built from your current dasha, Personal Year and planetary transits. These are traditional tendencies, not certainties." />
+              <ol className="relative border-l-2 border-gold/30 ml-2 space-y-4">
+                {report.timeline.map((t, i) => (
+                  <li key={i} className="pl-5 relative">
+                    <span className="absolute -left-[7px] top-1.5 w-3 h-3 rounded-full bg-gold ring-4 ring-gold/15" />
+                    <p className="text-xs font-bold uppercase tracking-wide text-gold-dark">{t.period}</p>
+                    <div className="mt-1 bg-card rounded-xl border border-border p-4 card-shadow">
+                      <h4 className="font-bold text-text">{t.title}</h4>
+                      <p className="mt-1 text-sm text-text-secondary leading-relaxed">{t.text}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="rounded-2xl border border-success/25 bg-success/5 p-5">
@@ -138,6 +203,19 @@ export default function CombinedReportPage() {
               ))}
             </div>
           </div>
+
+          {!!report.guidance?.length && (
+            <div className="rounded-2xl border border-gold/30 bg-gradient-to-br from-[#FFFDF8] to-[#F6EEDD] p-5 sm:p-6">
+              <SectionTitle icon={Lightbulb} title="Practical takeaways" subtitle="Reflections that follow from what your three readings agree on." />
+              <ul className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                {report.guidance.map((g, i) => (
+                  <li key={i} className="flex gap-3 rounded-xl bg-white/70 border border-gold/20 p-4 text-sm text-text leading-relaxed">
+                    <span className="w-6 h-6 rounded-full gold-gradient text-white text-xs font-bold flex items-center justify-center shrink-0">{i + 1}</span>{g.text}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <CalculationGate title="How this report was built" description="See the method, how contribution percentages are computed, and every claim that was cited with the calculation it came from.">
             <p className="text-sm text-text-secondary leading-relaxed flex gap-2"><Scale className="w-4 h-4 text-gold shrink-0 mt-0.5" />{report.method}</p>

@@ -11,6 +11,7 @@ from app.db.models import ChatMessageRecord, ChatSession, CombinedReport
 from app.modules.integration.claims import (
     THEMES, build_claim_pool, contributions, load_sources, select_relevant, themes_for_text, valid_ids,
 )
+from app.modules.integration.profile import build_profile_facts
 
 logger = logging.getLogger(__name__)
 
@@ -164,17 +165,97 @@ RULES
    (opposite directions), or single_source (only one system speaks to it).
 3. Similar wording is not automatically agreement; consider each claim's meaning and basis.
 4. Frame everything as traditional interpretation. Do not show ids or snake_case in prose.
+5. Address the reader directly as "you", never "the person"; do not invent a name or gender.
+6. Write for a reader who knows nothing about these systems: name which system says what, and
+   explain any technical term in plain words the first time (for example "your Moolank (birth-day number)").
 
 Return ONE JSON object:
 {
   "headline": "8-12 word title for the integrated profile",
-  "overview": "4-6 sentence synthesis across the three systems",
+  "overview": "5-7 sentence synthesis across the three systems, in plain language",
   "themes": [{"theme": "<theme key>", "relation": "agreement|partial_overlap|difference|contradiction|single_source",
-              "synthesis": "2-3 sentences", "claim_ids": ["..."]}],
+              "synthesis": "3-5 sentences: what each system says on this theme and how they fit together",
+              "claim_ids": ["..."]}],
   "strongest_agreements": [{"text": "...", "claim_ids": ["..."]}],
   "notable_tensions": [{"text": "...", "claim_ids": ["..."]}]
 }
 """.strip()
+
+
+EXPLAIN_PROMPT = """
+You are writing the "Your readings explained" part of a premium report for someone who knows
+nothing about numerology, Vedic astrology or palmistry. Per system you receive the person's key
+facts (key, label, value) and source-backed claims (id -> text). The reader already sees a fixed
+explanation of what each concept is; your job is what it means for THIS person.
+
+RULES
+1. facts: cover EVERY fact key that any claim speaks to (including lines "not clearly visible",
+   which have claims about their absence). Write "meaning": 2-4 warm, plain sentences on what that
+   fact suggests about the person in its tradition, citing claim ids. Skip only facts no claim supports.
+2. Explain any jargon you use in brackets the first time, e.g. "antardasha (sub-period)".
+3. system_summaries: 3-4 sentences per system that has facts, on what it says about the person overall.
+4. timeline: 3-6 entries on what the traditions suggest for the current and coming periods, built
+   from the dasha dates, Personal Year and transits in the facts. Each has a period, a short title,
+   2-4 sentences and claim ids. Take period dates ONLY from the facts (the dasha dates, or the
+   Personal Year's year); transits have no end date, so label them "Now" and never invent dates. Use "is traditionally linked
+   with" wording: no guaranteed events, and no medical, financial or legal advice.
+5. guidance: 4-6 practical, reflective takeaways that follow from cited claims (lean on a strength,
+   watch a stated challenge, use the current period well). Each cites claim ids.
+6. Use only the supplied claims. Never show ids, field names or snake_case in prose. Address the
+   reader as "you"; do not invent a name or gender.
+
+Return ONE JSON object:
+{
+  "system_summaries": {"numerology": "...", "astrology": "...", "palmistry": "..."},
+  "facts": {"<fact key>": {"meaning": "...", "claim_ids": ["..."]}},
+  "timeline": [{"period": "...", "title": "...", "text": "...", "claim_ids": ["..."]}],
+  "guidance": [{"text": "...", "claim_ids": ["..."]}]
+}
+""".strip()
+
+EXPLAIN_CLAIM_LIMITS = {"numerology": 16, "astrology": 36, "palmistry": 20}
+
+
+def _grounded(items, allowed: set[str], *keys: str) -> list[dict]:
+    """Keep list items with non-empty text that cite at least one allowed claim id."""
+    out = []
+    for item in items if isinstance(items, list) else []:
+        if isinstance(item, dict) and isinstance(item.get("text"), str) and item["text"].strip():
+            cited = valid_ids(item.get("claim_ids"), allowed)
+            if cited:
+                out.append({**{k: normalize_text(str(item.get(k) or "")) for k in keys},
+                            "text": normalize_text(item["text"]), "claim_ids": cited})
+    return out
+
+
+def _explain_readings(pool: dict[str, list[dict]], facts: dict[str, list[dict]]) -> tuple[dict, set[str]]:
+    """Ask the model what each profile fact means for this person; drop anything not grounded in claims."""
+    chosen = {m: sorted(cs, key=lambda c: c["weight"], reverse=True)[:EXPLAIN_CLAIM_LIMITS[m]] for m, cs in pool.items()}
+    allowed = {c["claim_id"] for cs in chosen.values() for c in cs}
+    parsed = generate_json(EXPLAIN_PROMPT, {
+        m: {"facts": [{"key": f["key"], "label": f["label"], "value": f["value"]} for f in facts[m]],
+            "claims": {c["claim_id"]: f"{c['claim'][:140]} (basis: {str(c['basis'])[:60]})" for c in chosen[m]}}
+        for m in pool if facts[m]
+    }, max_tokens=3200, temperature=0.4, cache_namespace="integration.explain.v3")
+
+    fact_keys = {f["key"] for fs in facts.values() for f in fs}
+    meanings = {}
+    raw_facts = parsed.get("facts") if isinstance(parsed.get("facts"), dict) else {}
+    for key, item in raw_facts.items():
+        if key in fact_keys and isinstance(item, dict) and isinstance(item.get("meaning"), str) and item["meaning"].strip():
+            cited = valid_ids(item.get("claim_ids"), allowed)
+            if cited:
+                meanings[key] = {"meaning": normalize_text(item["meaning"]), "claim_ids": cited}
+
+    summaries = parsed.get("system_summaries") if isinstance(parsed.get("system_summaries"), dict) else {}
+    timeline = _grounded(parsed.get("timeline"), allowed, "period", "title")
+    guidance = _grounded(parsed.get("guidance"), allowed)
+    explained = {
+        "system_summaries": {m: normalize_text(str(summaries[m])) for m in pool if facts[m] and summaries.get(m)},
+        "fact_meanings": meanings, "timeline": timeline, "guidance": guidance,
+    }
+    cited_ids = {i for x in [*meanings.values(), *timeline, *guidance] for i in x["claim_ids"]}
+    return explained, cited_ids
 
 
 def combined_report(db: Session, *, owner_key: str | None, ids: dict[str, int | None]) -> dict:
@@ -193,9 +274,20 @@ def combined_report(db: Session, *, owner_key: str | None, ids: dict[str, int | 
     allowed = {c["claim_id"] for b in per_theme.values() for cs in b.values() for c in cs}
     by_id = {c["claim_id"]: c for claims in pool.values() for c in claims}
 
+    facts = build_profile_facts(sources)
+    # The model calls below can take minutes under rate limits; return the connection to the pool
+    # meanwhile so the pooler doesn't drop it before the report is saved.
+    db.rollback()
     themes_out, headline, overview, agreements, tensions = [], "", "", [], []
+    explained: dict = {"system_summaries": {}, "fact_meanings": {}, "timeline": [], "guidance": []}
+    explained_ids: set[str] = set()
     status = "llm_not_configured"
     if llm_available():
+        try:
+            explained, explained_ids = _explain_readings(pool, facts)
+        except Exception:
+            # The comparison below still makes a useful report, so a failed explainer is not fatal.
+            logger.exception("Combined report explainer failed")
         try:
             # Each claim is sent once and themes reference it by id, keeping the request inside
             # small tokens-per-minute budgets.
@@ -203,7 +295,7 @@ def combined_report(db: Session, *, owner_key: str | None, ids: dict[str, int | 
                 "available_systems": available,
                 "claims": {cid: f"[{by_id[cid]['module']}] {by_id[cid]['claim'][:160]} (basis: {str(by_id[cid]['basis'])[:70]})" for cid in sorted(allowed)},
                 "themes": {t: {"label": THEMES[t], "claim_ids": {m: [c["claim_id"] for c in cs] for m, cs in b.items()}} for t, b in per_theme.items()},
-            }, max_tokens=2600, temperature=0.4, cache_namespace="integration.report.v2")
+            }, max_tokens=3200, temperature=0.4, cache_namespace="integration.report.v4")
             headline = normalize_text(str(parsed.get("headline") or ""))
             overview = normalize_text(str(parsed.get("overview") or ""))
             for item in parsed.get("themes", []) if isinstance(parsed.get("themes"), list) else []:
@@ -234,11 +326,12 @@ def combined_report(db: Session, *, owner_key: str | None, ids: dict[str, int | 
     full_selection = {m: [c for c in claims if c["claim_id"] in allowed] for m, claims in pool.items()}
     result = {
         "headline": headline, "overview": overview, "themes": themes_out,
+        "profile_facts": facts, **explained,
         "strongest_agreements": agreements, "notable_tensions": tensions,
         "overall_contributions": contributions(all_cited, full_selection),
         "available_modules": available,
         "source_ids": {m: (sources[m][0] if sources.get(m) else None) for m in MODULE_LABELS},
-        "claims": {cid: {k: by_id[cid][k] for k in ("module", "trait", "claim", "basis", "weight", "source_name")} for cid in dict.fromkeys(all_cited + [i for x in agreements + tensions for i in x["claim_ids"]]) if cid in by_id},
+        "claims": {cid: {k: by_id[cid][k] for k in ("module", "trait", "claim", "basis", "weight", "source_name")} for cid in dict.fromkeys(all_cited + [i for x in agreements + tensions for i in x["claim_ids"]] + sorted(explained_ids)) if cid in by_id},
         "method": (
             "Each system's saved reading is converted into claims tagged with shared themes. For each theme the "
             "model classifies whether the systems agree, partly overlap, differ or contradict, citing claims. A "

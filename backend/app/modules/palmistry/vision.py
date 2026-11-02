@@ -5,13 +5,16 @@ Pipeline
 2. Similarity-warp the palm into a canonical frame: index-finger base at u=0, little-finger base at
    u=1, finger-base line at v=0 and wrist at v=1. The frame is the same for left/right hands and any
    rotation, so line corridors and mount positions are defined once.
-3. Crease ("ridge") map: CLAHE -> Sato ridge filter (dark ridges) + morphological black-hat. If a
-   trained U-Net is available (models/palm_lines_unet.onnx) its probability map is blended in.
-4. Each principal line is traced as a minimum-cost path between landmark-anchored start and end
-   zones, with a soft penalty for leaving its traditional corridor.
-5. The traced path is trimmed to where crease evidence actually exists, and measured (length,
-   depth, curvature, breaks, forks, endpoints). Mounts are scored from relative shading and line
-   density.
+3. Crease ("ridge") map: CLAHE -> Sato ridge filter (dark ridges) + morphological black-hat. It
+   measures how deep a crease looks and drives mount line density.
+4. Line identity: a U-Net trained on ~7,000 labelled palms (models/palm_lines_unet.onnx, see
+   backend/training/palm_lines) gives one probability map each for the heart, head, life and fate
+   lines. Each line is the cheapest path through its own map between the extremes of its strongest
+   region, so the model, not a fixed corridor, decides which crease is which. The sun line has no
+   model channel and, like every line when the model file is absent, is traced as a minimum-cost
+   path through the crease map inside its traditional corridor.
+5. The traced path is trimmed to where evidence actually exists, and measured (length, depth,
+   curvature, breaks, forks, endpoints). Mounts are scored from relative shading and line density.
 
 All thresholds live in this module and are reported back in the calculation trace.
 """
@@ -79,6 +82,15 @@ MOUNT_SPECS = {
 }
 
 THRESHOLDS = {
+    "model_on": 0.35,             # line-model probability counted as "line present" at a pixel
+    "model_presence": 0.5,        # mean line-model probability along a line to call it detected
+    "model_keep": 0.15,           # a region joins a line when its summed probability is >= this share of the strongest
+    "model_reach": 0.25,          # ... and it lies within this many palm widths of the strongest region
+    "depth_window_units": 0.02,   # depth along a model path is the strongest crease response within this radius
+    # A model-traced fate line counts only when its crease is at least this share as strong as the
+    # same hand's heart and head lines (see _check_model_fate).
+    "fate_relative_crease": 0.6,
+    "fate_max_tilt": 35.0,        # degrees from the palm's vertical axis; a fate line runs up toward the middle finger
     "evidence_on": 0.28,          # normalised crease response counted as "line present"
     "extent_density": 0.45,       # share of "on" pixels in a sliding window that marks the line's ends
     "presence_mean": 0.45,        # mean response along a principal line (heart, head, life) to call it detected
@@ -207,11 +219,39 @@ def _unet_session():
 
 
 # Bump whenever detection or measurement changes, so saved readings from older logic are not reused.
-PIPELINE_VERSION = "palm-v4"
+PIPELINE_VERSION = "palm-v5"
+MODEL_LINES = ("heart", "head", "life", "fate")  # channel order of the ONNX model
 
 
 def detector_name() -> str:
-    return ("unet+ridge" if _unet_session() is not None else "ridge_filter") + f":{PIPELINE_VERSION}"
+    return ("unet_lines+ridge" if _unet_session() is not None else "ridge_filter") + f":{PIPELINE_VERSION}"
+
+
+def line_probabilities(bgr: np.ndarray, points: np.ndarray, frame: Frame) -> dict[str, np.ndarray] | None:
+    """Run the line model on a square crop around the hand (as in its training images) and warp each
+    line's probability map into the canonical frame. None when no model is installed."""
+    session = _unet_session()
+    if session is None:
+        return None
+    meta = session.get_modelmeta().custom_metadata_map
+    size = int(meta.get("size", 384))
+    names = meta.get("lines", ",".join(MODEL_LINES)).split(",")
+    lo, hi = points.min(axis=0), points.max(axis=0)
+    side = float(max(hi - lo)) * 1.25
+    x0, y0 = (lo + hi) / 2 - side / 2
+    side_px = max(int(round(side)), size)
+    crop = cv2.warpAffine(bgr, np.array([[1, 0, -x0], [0, 1, -y0]], np.float64), (side_px, side_px), borderMode=cv2.BORDER_REPLICATE)
+    crop = cv2.resize(crop, (size, size), interpolation=cv2.INTER_AREA)
+    inp = cv2.cvtColor(crop, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
+    inp = ((inp - (0.485, 0.456, 0.406)) / (0.229, 0.224, 0.225)).transpose(2, 0, 1)[None].astype(np.float32)
+    logits = session.run(None, {session.get_inputs()[0].name: inp})[0][0]
+    probs = 1.0 / (1.0 + np.exp(-logits))
+    # model px -> image px -> canonical raster px
+    scale = side_px / size
+    to_image = np.array([[scale, 0, x0], [0, scale, y0]])
+    to_canon = np.hstack([frame.affine[:, :2] @ to_image[:, :2], (frame.affine[:, :2] @ to_image[:, 2] + frame.affine[:, 2])[:, None]])
+    return {name: cv2.warpAffine(probs[i].astype(np.float32), to_canon, (frame.width, frame.height), flags=cv2.INTER_LINEAR)
+            for i, name in enumerate(names) if name in LINE_SPECS}
 
 
 def crease_map(warped_bgr: np.ndarray, mask: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -229,14 +269,6 @@ def crease_map(warped_bgr: np.ndarray, mask: np.ndarray) -> tuple[np.ndarray, np
         return np.clip(x / (hi + 1e-6), 0, 1)
 
     response = 0.6 * norm(ridges) + 0.4 * norm(blackhat)
-    session = _unet_session()
-    if session is not None:
-        size = 256
-        inp = cv2.resize(cv2.cvtColor(warped_bgr, cv2.COLOR_BGR2RGB), (size, size)).astype(np.float32) / 255.0
-        inp = ((inp - (0.485, 0.456, 0.406)) / (0.229, 0.224, 0.225)).transpose(2, 0, 1)[None].astype(np.float32)
-        logits = session.run(None, {session.get_inputs()[0].name: inp})[0][0, 0]
-        prob = cv2.resize(1 / (1 + np.exp(-logits)), (warped_bgr.shape[1], warped_bgr.shape[0]))
-        response = 0.7 * prob + 0.3 * response
     response[mask == 0] = 0
     return response.astype(np.float32), lum
 
@@ -274,7 +306,74 @@ def _trace(frame: Frame, spec: dict, response: np.ndarray, mask: np.ndarray) -> 
     return path[:, ::-1]  # (x, y)
 
 
-def _discount_shared_creases(lines: dict, response: np.ndarray) -> None:
+def _trace_probability(frame: Frame, spec: dict, prob: np.ndarray) -> np.ndarray | None:
+    """Trace one line through its own model probability map.
+
+    The strongest region (by summed probability) anchors the line; weaker regions close to it join,
+    so a broken line keeps both halves while a stray blob elsewhere is ignored. The path runs between
+    the two extremes of those regions along their main axis, as the cheapest route through the map,
+    which follows the crease and bridges gaps (later counted as breaks)."""
+    on = (prob >= THRESHOLDS["model_on"]).astype(np.uint8)
+    count, labels, stats, _ = cv2.connectedComponentsWithStats(on, connectivity=8)
+    if count <= 1:
+        return None
+    sums = np.bincount(labels.ravel(), weights=prob.ravel(), minlength=count)[1:]
+    strongest = int(np.argmax(sums)) + 1
+    reach = int(THRESHOLDS["model_reach"] * S) | 1
+    near = cv2.dilate((labels == strongest).astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (reach, reach)))
+    keep = [i + 1 for i, s in enumerate(sums) if s >= THRESHOLDS["model_keep"] * sums[strongest - 1] and near[labels == i + 1].any()]
+    ys, xs = np.nonzero(np.isin(labels, keep))
+    if len(xs) < 10:
+        return None
+    pts = np.column_stack([xs, ys]).astype(np.float64)
+    centred = pts - pts.mean(axis=0)
+    axis = np.linalg.svd(centred, full_matrices=False)[2][0]
+    proj = centred @ axis
+    a, b = pts[int(np.argmin(proj))], pts[int(np.argmax(proj))]
+    cost = 1.0 / (0.02 + prob ** 2)
+    mcp = MCP_Geometric(cost, fully_connected=True)
+    mcp.find_costs([(int(a[1]), int(a[0]))], [(int(b[1]), int(b[0]))])
+    path = np.array(mcp.traceback((int(b[1]), int(b[0]))), dtype=np.float64)[:, ::-1]  # (x, y)
+    # Orient like the corridor template so start/end keep their palmistry meaning (e.g. heart line
+    # from the little-finger edge, fate line from the wrist).
+    t0 = np.array(frame.uv_to_raster(*spec["template"][0]))
+    if np.linalg.norm(path[-1] - t0) < np.linalg.norm(path[0] - t0):
+        path = path[::-1]
+    return path
+
+
+def _check_model_fate(frame: Frame, lines: dict) -> None:
+    """The training data labels a fate line on almost every palm, so the model always proposes one.
+    Keep it only when it behaves like a fate line: it runs up the palm, has its own course rather
+    than riding another line, and is a real crease compared with the same hand's heart and head."""
+    fate = lines.get("fate", {})
+    path = fate.get("raster_path")
+    if not fate.get("detected") or path is None:
+        return
+    du = fate["end_uv"][0] - fate["start_uv"][0]
+    dv = (fate["end_uv"][1] - fate["start_uv"][1]) * frame.wrist_v_scale  # in palm widths, like u
+    tilt = float(np.degrees(np.arctan2(abs(du), abs(dv) + 1e-6)))
+    occupied = np.zeros((frame.height, frame.width), np.uint8)
+    for key in ("heart", "head", "life"):
+        other = lines.get(key, {})
+        if other.get("detected") and other.get("raster_path") is not None:
+            cv2.polylines(occupied, [other["raster_path"].astype(np.int32)], False, 255, max(3, int(0.05 * S)))
+    shared = float((occupied[path[:, 1].astype(int), path[:, 0].astype(int)] > 0).mean())
+    references = [lines[k]["mean_crease_response"] for k in ("heart", "head") if lines.get(k, {}).get("detected")]
+    relative = fate["mean_crease_response"] / max(float(np.mean(references)), 1e-6) if references else 1.0
+    fate.update({"tilt_degrees": round(tilt, 1), "shared_with_principal": round(shared, 2), "relative_crease": round(relative, 2)})
+    if tilt > THRESHOLDS["fate_max_tilt"]:
+        reason = "The candidate crease runs across the palm rather than up toward the middle finger, so it is not a fate line."
+    elif shared > THRESHOLDS["max_shared"]:
+        reason = "Its visible course mostly follows the head, heart or life line, so it is not counted separately."
+    elif relative < THRESHOLDS["fate_relative_crease"]:
+        reason = "The crease is too faint compared with your heart and head lines to count as a visible fate line."
+    else:
+        return
+    fate["detected"], fate["reason"] = False, reason
+
+
+def _discount_shared_creases(lines: dict, response: np.ndarray, minor: tuple[str, ...] = ("fate", "sun")) -> None:
     """Fate and sun lines run across the heart and head lines. Where a minor line's path rides along a
     detected principal crease, that stretch is evidence for the principal line, not the minor one, so
     it is excluded; a minor line that mostly shares another crease is not reported."""
@@ -283,7 +382,7 @@ def _discount_shared_creases(lines: dict, response: np.ndarray) -> None:
         line = lines.get(key, {})
         if line.get("detected") and line.get("raster_path") is not None:
             cv2.polylines(occupied, [line["raster_path"].astype(np.int32)], False, 255, max(3, int(0.05 * S)))
-    for key in ("fate", "sun"):
+    for key in minor:
         line = lines.get(key, {})
         path = line.get("raster_path")
         if not line.get("detected") or path is None:
@@ -303,10 +402,19 @@ def _arc_length(points: np.ndarray) -> float:
     return float(np.sum(np.linalg.norm(np.diff(points, axis=0), axis=1))) if len(points) > 1 else 0.0
 
 
-def _measure(frame: Frame, key: str, spec: dict, path: np.ndarray, response: np.ndarray) -> dict:
-    values = response[path[:, 1].astype(int), path[:, 0].astype(int)]
+def _measure(frame: Frame, key: str, spec: dict, path: np.ndarray, response: np.ndarray, prob: np.ndarray | None = None) -> dict:
+    """Measure a traced line. With a model probability map, presence and extent come from the model
+    and depth from the crease response; without one, the crease response drives everything."""
+    ys_all, xs_all = path[:, 1].astype(int), path[:, 0].astype(int)
+    if prob is not None:
+        # Model paths follow the labelled course, which can sit a pixel or two off the darkest part
+        # of the crease, so depth is read as the strongest response close to the path.
+        near = int(THRESHOLDS["depth_window_units"] * S) | 1
+        response = cv2.dilate(response, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (near, near)))
+    crease = response[ys_all, xs_all]
+    values = prob[ys_all, xs_all] if prob is not None else crease
     smooth = np.convolve(values, np.ones(7) / 7, mode="same")
-    on = smooth >= THRESHOLDS["evidence_on"]
+    on = smooth >= (THRESHOLDS["model_on"] if prob is not None else THRESHOLDS["evidence_on"])
     window = max(9, S // 30)
     density = np.convolve(on.astype(float), np.ones(window) / window, mode="same")
     good = np.where(density >= THRESHOLDS["extent_density"])[0]
@@ -317,7 +425,8 @@ def _measure(frame: Frame, key: str, spec: dict, path: np.ndarray, response: np.
     extent = path[start:end + 1]
     ext_on = on[start:end + 1]
     length_units = _arc_length(extent) / S
-    mean_response = float(values[start:end + 1].mean())
+    mean_presence = float(values[start:end + 1].mean())
+    mean_response = float(crease[start:end + 1].mean())
 
     gap_px = THRESHOLDS["gap_units"] * S
     breaks, run = 0, 0.0
@@ -336,14 +445,17 @@ def _measure(frame: Frame, key: str, spec: dict, path: np.ndarray, response: np.
     offsets = (extent - extent[0]) @ normal
     sagitta = float(np.max(np.abs(offsets)) / chord_len)
 
-    presence = THRESHOLDS["presence_mean_minor"] if key in ("fate", "sun") else THRESHOLDS["presence_mean"]
-    detected = length_units >= spec["min_len"] and mean_response >= presence
+    if prob is not None:
+        presence = THRESHOLDS["model_presence"]
+    else:
+        presence = THRESHOLDS["presence_mean_minor"] if key in ("fate", "sun") else THRESHOLDS["presence_mean"]
+    detected = length_units >= spec["min_len"] and mean_presence >= presence
     depth = "deep" if mean_response >= THRESHOLDS["deep"] else "medium" if mean_response >= THRESHOLDS["medium"] else "faint"
     curvature = "straight" if sagitta < THRESHOLDS["straight"] else "gently curved" if sagitta < THRESHOLDS["curved"] else "strongly curved"
     start_uv = frame.raster_to_uv(*extent[0])
     end_uv = frame.raster_to_uv(*extent[-1])
     coverage = float(ext_on.mean())
-    confidence = round(float(np.clip(mean_response * 0.6 + coverage * 0.4, 0, 1)), 2)
+    confidence = round(float(np.clip(mean_presence * 0.6 + coverage * 0.4, 0, 1)), 2)
     return {
         **base,
         "detected": bool(detected),
@@ -351,6 +463,7 @@ def _measure(frame: Frame, key: str, spec: dict, path: np.ndarray, response: np.
         "raster_trace": path,
         "length_palm_widths": round(length_units, 2),
         "mean_crease_response": round(mean_response, 3),
+        "model_probability": round(mean_presence, 3) if prob is not None else None,
         "coverage": round(coverage, 2),
         "depth": depth,
         "sagitta_ratio": round(sagitta, 3),
@@ -484,12 +597,25 @@ def analyse(bgr: np.ndarray, hand: str) -> dict:
     response, lum = crease_map(warped, mask)
     sharpness = float(cv2.Laplacian(lum, cv2.CV_64F)[mask > 0].var())
 
+    probs = line_probabilities(bgr, points, frame)
     lines = {}
     for key, spec in LINE_SPECS.items():
-        path = _trace(frame, spec, response, mask)
-        lines[key] = _measure(frame, key, spec, path, response) if path is not None else {
-            "key": key, "name": spec["name"], "color": spec["color"], "detected": False, "reason": "Corridor outside the visible palm."}
-    _discount_shared_creases(lines, response)
+        if probs is not None and key in probs:
+            prob = probs[key]
+            prob[mask == 0] = 0
+            path = _trace_probability(frame, spec, prob)
+            reason = "The line model found no clear trace of this line."
+        else:
+            prob = None
+            path = _trace(frame, spec, response, mask)
+            reason = "Corridor outside the visible palm."
+        lines[key] = _measure(frame, key, spec, path, response, prob) if path is not None else {
+            "key": key, "name": spec["name"], "color": spec["color"], "detected": False, "reason": reason}
+    if probs is not None and "fate" in probs:
+        _check_model_fate(frame, lines)
+    # The model already separates the fate line from the others; only corridor-traced minor lines
+    # need checking for riding along a principal crease.
+    _discount_shared_creases(lines, response, minor=tuple(k for k in ("fate", "sun") if probs is None or k not in probs))
     mounts = _mounts(frame, lum, response, mask)
 
     h, w = bgr.shape[:2]
