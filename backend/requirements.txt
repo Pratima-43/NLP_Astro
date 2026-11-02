@@ -20,5 +20,5 @@ mediapipe>=0.10.31
 opencv-python-headless>=4.10
 scikit-image>=0.24
 numpy>=1.26
-# Optional: install only to run a trained palm-line U-Net (models/palm_lines_unet.onnx)
-# onnxruntime>=1.18
+# Runs the palm-line model (app/modules/palmistry/models/palm_lines_unet.onnx) on the CPU
+onnxruntime>=1.18

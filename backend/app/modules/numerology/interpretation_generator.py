@@ -199,11 +199,16 @@ RULES
 1. Use only the supplied claims; every item must cite record IDs from the input.
 2. Keep components distinct. A leadership claim from Moolank is not the same claim as a leadership
    claim from Namank; when they point the same way, call it a "resonance" and name both components.
-3. A "tension" is where claims from different components pull in different directions (for example
-   one favours independence and another cooperation). Do not invent tensions.
-4. No scientific claims, no invented predictions or advice. Use "in this tradition" framing.
-5. Do not expose record IDs, field names or snake_case in prose.
-6. Address the reader directly as "you"; do not invent a name or gender.
+3. Look for resonances deliberately: compare every pair of components (six pairs) and list each pair
+   whose claims share a theme, even in different words (for example "creativity" and "artistic
+   grace", or "duty" and "responsibility"). Components with the same number almost always resonate.
+   Aim for 2-4 resonances; return an empty list only when no pair genuinely shares a theme.
+4. A "tension" is where claims from different components pull in different directions (for example
+   one favours independence and another cooperation). Do not invent tensions. A shared theme is a
+   resonance, never a tension; do not list the same pair and theme in both.
+5. No scientific claims, no invented predictions or advice. Use "in this tradition" framing.
+6. Do not expose record IDs, field names or snake_case in prose.
+7. Address the reader directly as "you"; do not invent a name or gender.
 
 Return ONE valid JSON object:
 {
@@ -244,7 +249,7 @@ def generate_profile_synthesis(
         {"target_year": target_year, "components": compact},
         max_tokens=1400,
         temperature=0.4,
-        cache_namespace="numerology.synthesis.v2",
+        cache_namespace="numerology.synthesis.v3",
     )
     valid_components = set(components)
 
