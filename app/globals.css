@@ -1,141 +1,175 @@
 @import "tailwindcss";
 
-/* ── AstroVerse Premium Gold Theme ─────────────────────────── */
-@theme inline {
-  --color-ivory: #FAF7F0;
-  --color-gold: #C6A15B;
-  --color-gold-dark: #9E7938;
-  --color-gold-light: #D4B87A;
-  --color-navy: #171B2D;
-  --color-navy-light: #232842;
-  --color-card: #FFFFFF;
-  --color-text: #252525;
-  --color-text-secondary: #77736B;
-  --color-border: #E8DFCF;
-  --color-success: #4A7C59;
-  --color-error: #C45B5B;
-  --color-warning: #D4A843;
+/*
+  AstroVerse design tokens.
+  Plain, calm and high-contrast: near-white paper, ink text, and one colour per reading
+  (turmeric for Numbers, indigo for Stars, teal for Hand, rose for the Full Story, sky for Ask).
+  Every text colour below passes WCAG AA on white; body text passes AAA.
+*/
+@theme {
+  --color-paper: #faf9f6;
+  --color-surface: #ffffff;
+  --color-ink: #1c1a17;
+  --color-ink-2: #4a453f;
+  --color-ink-3: #66605a;
+  --color-line: #e6e2da;
+  --color-line-2: #cfc8bd;
+  --color-focus: #1d4ed8;
 
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-num: #b45309;
+  --color-num-soft: #fdf1d8;
+  --color-num-ink: #713f12;
+  --color-star: #4338ca;
+  --color-star-soft: #e6e9fe;
+  --color-star-ink: #312e81;
+  --color-hand: #0f766e;
+  --color-hand-soft: #d5f5ef;
+  --color-hand-ink: #134e4a;
+  --color-story: #be185d;
+  --color-story-soft: #fce7f1;
+  --color-story-ink: #831843;
+  --color-ask: #0369a1;
+  --color-ask-soft: #e0f0fb;
+  --color-ask-ink: #0c4a6e;
+
+  --color-good: #15803d;
+  --color-good-soft: #e3f6e8;
+  --color-care: #9a3412;
+  --color-care-soft: #fdecdc;
+  --color-bad: #b91c1c;
+  --color-bad-soft: #fde4e4;
 }
 
-/* ── Base Styles ───────────────────────────────────────────── */
+@theme inline {
+  --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-heading), var(--font-body), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Text size preference (Settings → Text size, or the "Aa" button). Everything is in rem, so it all scales. */
 html {
-  scroll-behavior: smooth;
+  font-size: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+html[data-text-size="large"] {
+  font-size: 112.5%;
+}
+html[data-text-size="xlarge"] {
+  font-size: 125%;
 }
 
 body {
-  background-color: #FAF7F0;
-  color: #252525;
-  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 1.125rem;
+  line-height: 1.6;
+  text-rendering: optimizeLegibility;
 }
 
-/* ── Scrollbar Styling ─────────────────────────────────────── */
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #FAF7F0;
-}
-::-webkit-scrollbar-thumb {
-  background: #E8DFCF;
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #C6A15B;
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
 }
 
-/* ── Selection ─────────────────────────────────────────────── */
+p,
+li {
+  text-wrap: pretty;
+}
+
 ::selection {
-  background-color: #C6A15B;
-  color: white;
+  background: #fde68a;
+  color: var(--color-ink);
 }
 
-/* ── Custom Utilities ──────────────────────────────────────── */
-.gold-gradient {
-  background: linear-gradient(135deg, #C6A15B 0%, #D4B87A 50%, #9E7938 100%);
+/* One clear, thick focus ring everywhere, for keyboard users. */
+:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+  border-radius: 0.5rem;
 }
 
-.navy-gradient {
-  background: linear-gradient(135deg, #171B2D 0%, #232842 100%);
-}
-
-.text-gold-gradient {
-  background: linear-gradient(135deg, #C6A15B, #D4B87A);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.card-shadow {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
-}
-
-.card-shadow-hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
-}
-
-/* ── Animations ────────────────────────────────────────────── */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes slideIn {
-  from { opacity: 0; transform: translateX(-12px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes pulse-gold {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(198, 161, 91, 0.4); }
-  50% { box-shadow: 0 0 0 8px rgba(198, 161, 91, 0); }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.4s ease-out forwards;
-}
-
-.animate-slide-in {
-  animation: slideIn 0.3s ease-out forwards;
-}
-
-.animate-pulse-gold {
-  animation: pulse-gold 2s ease-in-out infinite;
-}
-
-/* ── Star decorations ──────────────────────────────────────── */
-.star-field {
-  background-image:
-    radial-gradient(1px 1px at 10% 20%, rgba(198, 161, 91, 0.3) 0%, transparent 100%),
-    radial-gradient(1px 1px at 30% 60%, rgba(198, 161, 91, 0.2) 0%, transparent 100%),
-    radial-gradient(1px 1px at 50% 30%, rgba(198, 161, 91, 0.25) 0%, transparent 100%),
-    radial-gradient(1px 1px at 70% 70%, rgba(198, 161, 91, 0.15) 0%, transparent 100%),
-    radial-gradient(1px 1px at 90% 40%, rgba(198, 161, 91, 0.3) 0%, transparent 100%),
-    radial-gradient(1.5px 1.5px at 20% 80%, rgba(198, 161, 91, 0.2) 0%, transparent 100%),
-    radial-gradient(1.5px 1.5px at 80% 10%, rgba(198, 161, 91, 0.25) 0%, transparent 100%);
-}
-
-/* Native selects styled to match the segmented date/time pickers. */
-.select-gold {
-  appearance: none;
-  background-color: #fff;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23C6A15B' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 0.65rem center;
-  padding-right: 2rem;
-  font-size: 0.875rem;
+/* Native <details> used for "How we worked this out" and FAQs. */
+details > summary {
+  list-style: none;
   cursor: pointer;
 }
+details > summary::-webkit-details-marker {
+  display: none;
+}
+details[open] > summary .chevron {
+  transform: rotate(180deg);
+}
 
-/* Print / "Save as PDF": keep only the reading itself. */
+/* Bottom navigation sits above the phone's home indicator. */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.rise-in {
+  animation: rise-in 0.35s ease-out both;
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+.pulse-dot {
+  animation: pulse-dot 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* "Save as PDF" prints only the reading itself. */
 @media print {
-  @page { margin: 14mm; }
-  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  aside, header, nav, form, .no-print { display: none !important; }
-  html, body, .bg-ivory { background: #fff !important; }
-  main { padding: 0 !important; }
-  .card-shadow, .shadow-lg, .shadow-xl, .shadow-md { box-shadow: none !important; }
-  .animate-fade-in { animation: none !important; }
-  .rounded-xl, .rounded-2xl { break-inside: avoid; }
+  html {
+    font-size: 90%;
+  }
+  body {
+    background: #fff;
+  }
+  .no-print,
+  header,
+  nav {
+    display: none !important;
+  }
+  main {
+    padding: 0 !important;
+  }
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  section,
+  article {
+    break-inside: avoid-page;
+  }
 }

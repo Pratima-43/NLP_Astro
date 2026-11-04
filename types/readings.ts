@@ -316,6 +316,8 @@ export interface CombinedReportResult {
   notable_tensions: Array<{ text: string; claim_ids: string[] }>;
   overall_contributions: Contribution[];
   available_modules: Record<ModuleKey, boolean>;
+  /** The saved reading each module contributed (null when that reading didn't exist yet). */
+  source_ids?: Record<ModuleKey, number | null>;
   claims: Record<string, IntegratedClaim>;
   method: string;
   generation_status: string;

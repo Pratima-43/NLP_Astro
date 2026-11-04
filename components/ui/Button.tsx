@@ -1,93 +1,60 @@
-"use client";
+import Link from "next/link";
+import type { ButtonHTMLAttributes, ComponentProps, ReactNode } from "react";
+import { Spinner } from "@/components/ui/Spinner";
 
-import React, { ButtonHTMLAttributes, forwardRef, ReactNode } from "react";
-import { Loader2 } from "lucide-react";
+type Variant = "primary" | "secondary" | "quiet" | "danger";
+type Size = "md" | "lg";
 
-export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "navy";
-export type ButtonSize = "sm" | "md" | "lg";
+const BASE =
+  "inline-flex items-center justify-center gap-2.5 rounded-xl font-semibold text-center leading-tight transition-colors select-none disabled:cursor-not-allowed disabled:opacity-55";
 
-export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: ButtonVariant;
-  size?: ButtonSize;
-  loading?: boolean;
-  fullWidth?: boolean;
-  icon?: ReactNode;
-  iconPosition?: "left" | "right";
-  children?: ReactNode;
+const VARIANTS: Record<Variant, string> = {
+  primary: "bg-ink text-white hover:bg-[#3a3631] active:bg-black",
+  secondary: "bg-surface text-ink border-2 border-line-2 hover:border-ink",
+  quiet: "text-ink underline-offset-4 hover:bg-black/[0.05]",
+  danger: "bg-bad text-white hover:bg-[#991b1b]",
+};
+
+const SIZES: Record<Size, string> = {
+  md: "min-h-12 px-5 py-2.5 text-base",
+  lg: "min-h-14 px-7 py-3 text-lg",
+};
+
+export function buttonClass(variant: Variant = "primary", size: Size = "md", extra = ""): string {
+  return `${BASE} ${VARIANTS[variant]} ${SIZES[size]} ${extra}`.trim();
 }
 
-const variantStyles: Record<ButtonVariant, string> = {
-  primary:
-    "bg-gold text-white hover:bg-gold-dark active:bg-gold-dark shadow-sm hover:shadow transition-all focus:ring-gold/40",
-  secondary:
-    "bg-transparent border border-gold text-gold hover:bg-gold/10 active:bg-gold/20 transition-all focus:ring-gold/30",
-  ghost:
-    "bg-transparent text-text hover:bg-gold/10 hover:text-gold active:bg-gold/20 transition-colors focus:ring-gold/30",
-  danger:
-    "bg-error text-white hover:bg-error/90 active:bg-error/95 shadow-sm hover:shadow transition-all focus:ring-error/40",
-  navy:
-    "bg-navy text-white hover:bg-navy-light active:bg-navy-light shadow-sm hover:shadow transition-all focus:ring-navy/40",
-};
+interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: Variant;
+  size?: Size;
+  /** Shows a spinner and disables the button. */
+  busy?: boolean;
+  busyText?: string;
+  icon?: ReactNode;
+}
 
-const sizeStyles: Record<ButtonSize, string> = {
-  sm: "text-xs px-3 py-1.5 rounded-lg gap-1.5",
-  md: "text-sm px-4 py-2.5 rounded-xl gap-2",
-  lg: "text-base px-6 py-3.5 rounded-xl gap-2.5 font-medium",
-};
+export function Button({ variant = "primary", size = "md", busy, busyText, icon, className = "", children, disabled, type = "button", ...rest }: ButtonProps) {
+  return (
+    <button type={type} className={buttonClass(variant, size, className)} disabled={disabled || busy} aria-busy={busy || undefined} {...rest}>
+      {busy ? <Spinner className="h-5 w-5" /> : icon}
+      <span>{busy && busyText ? busyText : children}</span>
+    </button>
+  );
+}
 
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  (
-    {
-      variant = "primary",
-      size = "md",
-      loading = false,
-      disabled = false,
-      fullWidth = false,
-      icon,
-      iconPosition = "left",
-      className = "",
-      children,
-      type = "button",
-      ...props
-    },
-    ref
-  ) => {
-    const isDisabled = disabled || loading;
+interface ButtonLinkProps extends ComponentProps<typeof Link> {
+  variant?: Variant;
+  size?: Size;
+  icon?: ReactNode;
+  iconAfter?: ReactNode;
+}
 
-    return (
-      <button
-        ref={ref}
-        type={type}
-        disabled={isDisabled}
-        className={`
-          inline-flex items-center justify-center font-medium select-none
-          cursor-pointer outline-none focus:ring-2 focus:ring-offset-1
-          disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none
-          active:scale-[0.98] transition-transform
-          ${variantStyles[variant]}
-          ${sizeStyles[size]}
-          ${fullWidth ? "w-full" : ""}
-          ${className}
-        `.trim()}
-        {...props}
-      >
-        {loading ? (
-          <Loader2
-            className={`animate-spin ${
-              size === "sm" ? "w-3.5 h-3.5" : size === "lg" ? "w-5 h-5" : "w-4 h-4"
-            }`}
-          />
-        ) : (
-          icon && iconPosition === "left" && <span>{icon}</span>
-        )}
-
-        {children && <span>{children}</span>}
-
-        {!loading && icon && iconPosition === "right" && <span>{icon}</span>}
-      </button>
-    );
-  }
-);
-
-Button.displayName = "Button";
-export default Button;
+export function ButtonLink({ variant = "primary", size = "md", icon, iconAfter, className = "", children, ...rest }: ButtonLinkProps) {
+  return (
+    <Link className={buttonClass(variant, size, className)} {...rest}>
+      {icon}
+      <span>{children}</span>
+      {iconAfter}
+    </Link>
+  );
+}

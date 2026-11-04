@@ -92,6 +92,21 @@ def test_integration_status_and_chat_without_llm(client, CLIENT):
     assert "career" in answer["themes"]
 
 
+def test_combined_report_is_saved_and_reopened(client, CLIENT):
+    report = client.post("/api/v1/integration/report", headers=CLIENT, json={}).json()
+    assert report["available_modules"]["numerology"] and report["report_id"]
+    latest = client.get("/api/v1/integration/report/latest", headers=CLIENT)
+    assert latest.status_code == 200
+    assert latest.json()["report_id"] == report["report_id"]
+
+
+def test_saved_report_needs_premium_and_is_private(client):
+    free = _account(client, "free-reader@example.com")
+    assert client.get("/api/v1/integration/report/latest", headers=free).status_code == 402
+    fresh = _account(client, "no-report-yet@example.com", premium=True)
+    assert client.get("/api/v1/integration/report/latest", headers=fresh).status_code == 404
+
+
 def test_chat_for_new_user_explains_missing_readings(client):
     headers = _account(client, "fresh-user@example.com", premium=True)
     answer = client.post("/api/v1/integration/chat", headers=headers, json={"message": "Hello"}).json()

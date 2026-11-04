@@ -29,9 +29,28 @@ Copy-Item .env.local.example .env.local
 npm run dev
 ```
 
-Open `http://localhost:3000`. API docs are at `http://localhost:8000/docs`. Redeem coupon `ASTROFREE` on the Pricing page for Premium (the chatbot and the combined report).
+Open `http://localhost:3000`. API docs are at `http://localhost:8000/docs`. Unlock Premium (Your Full Story and Ask a Question) with the code `ASTROFREE` on the Premium page.
 
 `.env.local` holds only browser-visible values. Never put database passwords, the Groq key, `AUTH_SECRET_KEY` or a Supabase service-role key in a `NEXT_PUBLIC_*` variable.
+
+## How the app flows
+
+The web app is built for anyone, from children to grandparents: large legible type (Lexend headings, Atkinson Hyperlegible body), a text-size switch, read-aloud on every summary, big buttons, plain words with the Sanskrit term in brackets, and one clear next step on every page.
+
+| Step | Page | What happens |
+|---|---|---|
+| Welcome | `/` | What AstroVerse is, how it works, questions people ask |
+| Account | `/signup`, `/login`, `/forgot-password`, `/reset-password` | Name, email, password |
+| Setup | `/setup` | One question per screen: name, birthday, birth time (or "I don't know"), birth place, writing hand, then a check screen |
+| Home | `/home` | "Your path": five numbered steps with their status and the next one highlighted |
+| 1 · Numbers | `/numbers` | Numerology from the saved details, one button |
+| 2 · Stars | `/stars` | Vedic birth chart from the saved details, one button |
+| 3 · Hand | `/hand` | Pick the hand, take or choose a palm photo, read it |
+| 4 · Full Story | `/story` | Premium: the three readings compared, saved for next time |
+| 5 · Ask | `/ask` | Premium: questions in your own words, answered from your readings |
+| Me | `/me` | Details, text size, Premium, emails, password, sign out, delete account |
+
+Every reading page has the same shape: an "In short" summary you can listen to, the key facts, good things and things to watch, then "How we worked this out" (sums, measurements and book sources) folded away. Old addresses (`/dashboard/*`, `/onboarding`, `/pricing`) redirect to the new ones.
 
 ## What's included
 
