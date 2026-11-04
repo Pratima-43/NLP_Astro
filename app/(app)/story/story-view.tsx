@@ -88,9 +88,9 @@ function StoryContent() {
       ) : saved.status === "error" ? (
         <Notice tone="error" title="We couldn’t open your full story">{saved.message}</Notice>
       ) : !report || report.generation_status === "no_readings" ? (
-        <section className="flex flex-col gap-6 rounded-3xl border border-line border-t-8 border-t-story bg-surface p-6 sm:p-8">
+        <section className="flex flex-col gap-6 rounded-[1.75rem] border border-line border-t-8 border-t-story bg-surface p-6 sm:p-8">
           <div className="flex flex-col gap-2">
-            <h2 className="text-2xl font-semibold">Put your readings together</h2>
+            <h2 className="text-4xl">Put your readings together</h2>
             <p className="text-lg text-ink-2">The more readings you have, the fuller your story. You need at least one.</p>
           </div>
           <ul className="grid gap-3 sm:grid-cols-3">
@@ -152,9 +152,11 @@ function StoryResult({ report, outdated, onRemake }: { report: CombinedReportRes
 
       <InShort headline={headline} text={overview} tone="story" label="Your story in short" />
 
-      <section className="flex flex-col gap-4 rounded-3xl border border-line bg-surface p-6">
-        <ShareBar contributions={report.overall_contributions} label="How much each reading added to your story" />
-      </section>
+      {report.overall_contributions.some((c) => c.percent > 0) && (
+        <section className="flex flex-col gap-4 border-y border-line py-6">
+          <ShareBar contributions={report.overall_contributions} label="How much each reading added to your story" />
+        </section>
+      )}
 
       {(report.strongest_agreements.length > 0 || report.notable_tensions.length > 0) && (
         <div className="grid gap-4 md:grid-cols-2">
@@ -170,10 +172,10 @@ function StoryResult({ report, outdated, onRemake }: { report: CombinedReportRes
             {MODULES.filter((m) => report.system_summaries?.[m]).map((m) => {
               const s = MODULE_STEP[m];
               return (
-                <article key={m} className={`flex flex-col gap-3 rounded-3xl border border-line border-t-8 bg-surface p-6 ${TONE[s.tone].top}`}>
+                <article key={m} className={`flex flex-col gap-3 rounded-[1.75rem] border border-line border-t-8 bg-surface p-6 ${TONE[s.tone].top}`}>
                   <div className="flex items-center gap-3">
                     <IconBadge icon={s.icon} tone={s.tone} size="sm" />
-                    <h3 className="text-xl font-semibold">{s.short}</h3>
+                    <h3 className="text-3xl">{s.short}</h3>
                   </div>
                   <p className="text-lg leading-relaxed">{report.system_summaries?.[m]}</p>
                 </article>
@@ -188,11 +190,11 @@ function StoryResult({ report, outdated, onRemake }: { report: CombinedReportRes
           <SectionTitle id="timeline" title="What’s ahead" subtitle="Taken only from your life periods and your year number." />
           <ol className="flex flex-col gap-3">
             {report.timeline?.map((t, i) => (
-              <li key={i} className="flex gap-4 rounded-3xl border border-line bg-surface p-5">
+              <li key={i} className="flex gap-4 rounded-[1.75rem] border border-line bg-surface p-5">
                 <CalendarClock className="mt-1 h-6 w-6 shrink-0 text-story" aria-hidden="true" />
                 <div className="flex flex-col gap-1">
                   <span className="text-base font-semibold text-story-ink">{t.period}</span>
-                  <h3 className="text-xl font-semibold">{t.title}</h3>
+                  <h3 className="text-3xl">{t.title}</h3>
                   <p className="text-lg leading-relaxed">{t.text}</p>
                 </div>
               </li>
@@ -202,8 +204,8 @@ function StoryResult({ report, outdated, onRemake }: { report: CombinedReportRes
       )}
 
       {(report.guidance?.length ?? 0) > 0 && (
-        <section aria-labelledby="tips" className="flex flex-col gap-4 rounded-3xl bg-story-soft p-6 sm:p-8">
-          <h2 id="tips" className="flex items-center gap-3 text-2xl font-semibold"><Lightbulb className="h-7 w-7 text-story" aria-hidden="true" />Things to think about</h2>
+        <section aria-labelledby="tips" className="flex flex-col gap-4 rounded-[1.75rem] bg-story-soft p-6 sm:p-8">
+          <h2 id="tips" className="flex items-center gap-3 text-4xl"><Lightbulb className="h-7 w-7 text-story" aria-hidden="true" />Things to think about</h2>
           <ul className="flex flex-col gap-3">
             {report.guidance?.map((g, i) => <li key={i} className="text-lg leading-relaxed">• {g.text}</li>)}
           </ul>
@@ -217,9 +219,9 @@ function StoryResult({ report, outdated, onRemake }: { report: CombinedReportRes
             {report.themes.map((t) => {
               const relation = RELATION_WORDS[t.relation] ?? RELATION_WORDS.difference;
               return (
-                <article key={t.theme} className="flex flex-col gap-4 rounded-3xl border border-line bg-surface p-6">
+                <article key={t.theme} className="flex flex-col gap-4 rounded-[1.75rem] border border-line bg-surface p-6">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h3 className="text-xl font-semibold">{t.label.replace("&", "and")}</h3>
+                    <h3 className="text-3xl">{t.label.replace("&", "and")}</h3>
                     <span className={`rounded-full px-3 py-1 text-base font-semibold ${relation.tone}`}>{relation.label}</span>
                   </div>
                   <p className="text-lg leading-relaxed">{t.synthesis}</p>

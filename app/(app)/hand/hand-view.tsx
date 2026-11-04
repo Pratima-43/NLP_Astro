@@ -119,28 +119,26 @@ export function HandView() {
       {!working && saved.status === "error" && <Notice tone="error" title="We couldn’t open your reading">{saved.message}</Notice>}
 
       {showUpload && (
-        <section className="flex flex-col gap-8 rounded-3xl border border-line border-t-8 border-t-hand bg-surface p-6 sm:p-8">
+        <section className="flex flex-col gap-14">
           <div className="flex flex-col gap-4">
-            <h2 className="flex items-center gap-3 text-2xl font-semibold">
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-ink text-lg text-white" aria-hidden="true">1</span>
-              Which hand will you photograph?
+            <p className="eyebrow text-hand">Step 01</p>
+            <h2 className="border-b border-ink/80 pb-4 text-4xl sm:text-5xl">Which hand will you photograph?
             </h2>
             <p className="text-lg text-ink-2">Palm readers start with the hand you write with. It shows the life you have made.</p>
             <div className="max-w-md"><HandChoice value={hand} onChange={setHand} label="Hand in the photo" /></div>
           </div>
 
           <div className="flex flex-col gap-4">
-            <h2 className="flex items-center gap-3 text-2xl font-semibold">
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-ink text-lg text-white" aria-hidden="true">2</span>
-              Take a clear photo of your palm
+            <p className="eyebrow text-hand">Step 02</p>
+            <h2 className="border-b border-ink/80 pb-4 text-4xl sm:text-5xl">Take a clear photo of your palm
             </h2>
             <div className="grid gap-3 sm:grid-cols-2">
-              <ul className="flex flex-col gap-2 rounded-2xl bg-good-soft p-4">
+              <ul className="flex flex-col gap-3 rounded-[1.5rem] bg-good-soft p-6">
                 {DO.map((tip) => (
                   <li key={tip} className="flex items-center gap-2 text-lg text-[#14532d]"><Check className="h-5 w-5 shrink-0" aria-hidden="true" />{tip}</li>
                 ))}
               </ul>
-              <ul className="flex flex-col gap-2 rounded-2xl bg-bad-soft p-4">
+              <ul className="flex flex-col gap-3 rounded-[1.5rem] bg-bad-soft p-6">
                 {DONT.map((tip) => (
                   <li key={tip} className="flex items-center gap-2 text-lg text-[#7f1d1d]"><X className="h-5 w-5 shrink-0" aria-hidden="true" />{tip}</li>
                 ))}
@@ -165,9 +163,8 @@ export function HandView() {
           </div>
 
           <div className="flex flex-col gap-4">
-            <h2 className="flex items-center gap-3 text-2xl font-semibold">
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-ink text-lg text-white" aria-hidden="true">3</span>
-              Read my palm
+            <p className="eyebrow text-hand">Step 03</p>
+            <h2 className="border-b border-ink/80 pb-4 text-4xl sm:text-5xl">Read my palm
             </h2>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <Button size="lg" onClick={read} disabled={!file} icon={<ScanLine className="h-5 w-5" aria-hidden="true" />}>Read my palm</Button>
@@ -221,7 +218,7 @@ function HandResult({ reading, marked }: { reading: PalmReading; marked: string 
           {marked ? (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element -- the marked-up photo returned by the reading */}
-              <img src={marked} alt={`Your ${reading.hand} palm with the lines we found drawn on it`} className="w-full rounded-3xl border border-line bg-ink object-contain" />
+              <img src={marked} alt={`Your ${reading.hand} palm with the lines we found drawn on it`} className="w-full rounded-[2rem] bg-night object-contain" />
               <p className="text-base text-ink-2">Coloured lines are the ones we found. Grey lines were too faint to count. Circles show the mounts.</p>
             </>
           ) : (
@@ -234,11 +231,11 @@ function HandResult({ reading, marked }: { reading: PalmReading; marked: string 
           <SectionTitle id="lines-title" title="Your lines" subtitle={`Your ${reading.hand} hand · ${humanize(element)} hand (${HAND_SHAPES[element] ?? ""})`} />
           <ul className="flex flex-col gap-3">
             {lines.map((line) => (
-              <li key={line.key} className="flex items-start gap-3 rounded-2xl border border-line bg-surface p-4">
+              <li key={line.key} className="flex items-start gap-4 border-b border-line py-5">
                 <span className="mt-1.5 h-4 w-4 shrink-0 rounded-full" style={{ background: line.detected ? line.color : "#cfc8bd" }} aria-hidden="true" />
                 <div className="flex flex-1 flex-col gap-0.5">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-lg font-semibold">{LINE_WORDS[line.key]?.name ?? line.name}</span>
+                    <span className="font-display text-2xl">{LINE_WORDS[line.key]?.name ?? line.name}</span>
                     <span className={`rounded-full px-2.5 py-0.5 text-base font-semibold ${line.detected ? "bg-good-soft text-[#14532d]" : "bg-paper text-ink-2"}`}>
                       {line.detected ? "Found" : "Not clear in this photo"}
                     </span>
@@ -269,9 +266,9 @@ function HandResult({ reading, marked }: { reading: PalmReading; marked: string 
       {!written && (
         <section aria-labelledby="hand-books" className="flex flex-col gap-5">
           <SectionTitle id="hand-books" title="What Cheiro’s book says about your hand" />
-          <div className="grid gap-4 lg:grid-cols-2">
-            <PointList title="Good things" kind="good" items={groups.good} />
-            <PointList title="Be careful about" kind="care" items={groups.care} />
+          <div className="grid gap-x-10 gap-y-8 lg:grid-cols-2">
+            <PointList title="Lean into" kind="good" items={groups.good} />
+            <PointList title="Go easy on" kind="care" items={groups.care} />
             <PointList title="Also in your hand" kind="other" items={groups.other} />
           </div>
         </section>
@@ -280,7 +277,7 @@ function HandResult({ reading, marked }: { reading: PalmReading; marked: string 
       <Disclosure title="How we worked this out" subtitle="Each measurement, the rule it matched, and the book quote it led to">
         <div className="flex flex-col gap-8">
           <div className="flex flex-col gap-3">
-            <h3 className="text-xl font-semibold">What we measured</h3>
+            <h3 className="text-3xl">What we measured</h3>
             <div className="overflow-x-auto rounded-2xl border border-line">
               <table className="w-full min-w-[34rem] text-left text-base">
                 <thead className="bg-paper text-ink-2">
@@ -303,7 +300,7 @@ function HandResult({ reading, marked }: { reading: PalmReading; marked: string 
             </div>
           </div>
           <div className="flex flex-col gap-3">
-            <h3 className="text-xl font-semibold">The mounts (fleshy pads of the palm)</h3>
+            <h3 className="text-3xl">The mounts (fleshy pads of the palm)</h3>
             <p className="text-base text-ink-2">Mounts are hard to judge from a flat photo, so they count for the least.</p>
             <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {Object.entries(analysis.mounts).map(([key, m]) => (
@@ -315,7 +312,7 @@ function HandResult({ reading, marked }: { reading: PalmReading; marked: string 
             </ul>
           </div>
           <div className="flex flex-col gap-3">
-            <h3 className="text-xl font-semibold">How the photo was read</h3>
+            <h3 className="text-3xl">How the photo was read</h3>
             <ul className="flex flex-col gap-2">
               {Object.entries(reading.method).map(([k, v]) => (
                 <li key={k} className="rounded-xl bg-paper px-4 py-3 text-base"><span className="font-semibold">{humanize(k)}: </span>{v}</li>
@@ -323,7 +320,7 @@ function HandResult({ reading, marked }: { reading: PalmReading; marked: string 
             </ul>
           </div>
           <div className="flex flex-col gap-3">
-            <h3 className="text-xl font-semibold">Quotes from the book ({evidence.length})</h3>
+            <h3 className="text-3xl">Quotes from the book ({evidence.length})</h3>
             <ul className="flex flex-col gap-2">
               {evidence.map((e) => <SourceItem key={e.claim} claim={e.claim} source={e.source_name} reasons={e.reasons} />)}
             </ul>

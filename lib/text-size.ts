@@ -3,9 +3,9 @@
 export type TextSize = "normal" | "large" | "xlarge";
 
 export const TEXT_SIZES: Array<{ value: TextSize; label: string; sample: string }> = [
-  { value: "normal", label: "Normal", sample: "text-lg" },
-  { value: "large", label: "Large", sample: "text-xl" },
-  { value: "xlarge", label: "Extra large", sample: "text-2xl" },
+  { value: "normal", label: "Normal", sample: "text-2xl" },
+  { value: "large", label: "Large", sample: "text-3xl" },
+  { value: "xlarge", label: "Extra large", sample: "text-4xl" },
 ];
 
 const STORAGE_KEY = "av-text-size";

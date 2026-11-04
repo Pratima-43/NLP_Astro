@@ -5,11 +5,11 @@ export type Tone = "num" | "star" | "hand" | "story" | "ask";
 
 /** Static Tailwind class names per colour, so the compiler keeps them. */
 export const TONE: Record<Tone, { text: string; ink: string; soft: string; solid: string; border: string; top: string; bar: string }> = {
-  num: { text: "text-num", ink: "text-num-ink", soft: "bg-num-soft", solid: "bg-num", border: "border-num", top: "border-t-num", bar: "#b45309" },
-  star: { text: "text-star", ink: "text-star-ink", soft: "bg-star-soft", solid: "bg-star", border: "border-star", top: "border-t-star", bar: "#4338ca" },
-  hand: { text: "text-hand", ink: "text-hand-ink", soft: "bg-hand-soft", solid: "bg-hand", border: "border-hand", top: "border-t-hand", bar: "#0f766e" },
-  story: { text: "text-story", ink: "text-story-ink", soft: "bg-story-soft", solid: "bg-story", border: "border-story", top: "border-t-story", bar: "#be185d" },
-  ask: { text: "text-ask", ink: "text-ask-ink", soft: "bg-ask-soft", solid: "bg-ask", border: "border-ask", top: "border-t-ask", bar: "#0369a1" },
+  num: { text: "text-num", ink: "text-num-ink", soft: "bg-num-soft", solid: "bg-num", border: "border-num", top: "border-t-num", bar: "#a8660f" },
+  star: { text: "text-star", ink: "text-star-ink", soft: "bg-star-soft", solid: "bg-star", border: "border-star", top: "border-t-star", bar: "#4f4ac4" },
+  hand: { text: "text-hand", ink: "text-hand-ink", soft: "bg-hand-soft", solid: "bg-hand", border: "border-hand", top: "border-t-hand", bar: "#2f7356" },
+  story: { text: "text-story", ink: "text-story-ink", soft: "bg-story-soft", solid: "bg-story", border: "border-story", top: "border-t-story", bar: "#a83d60" },
+  ask: { text: "text-ask", ink: "text-ask-ink", soft: "bg-ask-soft", solid: "bg-ask", border: "border-ask", top: "border-t-ask", bar: "#2a6aa3" },
 };
 
 export type StepKey = "numbers" | "stars" | "hand" | "story" | "ask";

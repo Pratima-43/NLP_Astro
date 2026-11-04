@@ -12,7 +12,7 @@ export function ReadAloud({ text, label = "Listen", className = "" }: { text: st
       type="button"
       onClick={() => (speaking ? stop() : speak(text))}
       aria-pressed={speaking}
-      className={`no-print inline-flex min-h-12 items-center gap-2 rounded-xl border-2 border-line-2 bg-surface px-4 text-base font-semibold text-ink hover:border-ink ${className}`}
+      className={`no-print inline-flex min-h-12 items-center gap-2 rounded-full border-[1.5px] border-ink/70 px-5 text-base font-semibold text-ink hover:bg-ink hover:text-moon ${className}`}
     >
       {speaking ? <Square className="h-5 w-5 fill-current" aria-hidden="true" /> : <Volume2 className="h-5 w-5" aria-hidden="true" />}
       {speaking ? "Stop reading" : label}

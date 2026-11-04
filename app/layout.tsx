@@ -1,20 +1,13 @@
 import type { Metadata, Viewport } from "next";
-import { Atkinson_Hyperlegible_Next, Lexend } from "next/font/google";
+import { Figtree, Geist_Mono, Instrument_Serif } from "next/font/google";
 import { Providers } from "@/components/providers/Providers";
 import { TEXT_SIZE_SCRIPT } from "@/lib/text-size";
 import "./globals.css";
 
-// Body text: designed by the Braille Institute to stay readable for people with low vision.
-const body = Atkinson_Hyperlegible_Next({
-  subsets: ["latin"],
-  variable: "--font-body",
-  display: "swap",
-  // Next.js has no size metrics for this newer family, so fall back to plain system fonts.
-  adjustFontFallback: false,
-  fallback: ["system-ui", "Segoe UI", "Arial", "sans-serif"],
-});
-// Headings: Lexend was designed to make reading easier.
-const heading = Lexend({ subsets: ["latin"], variable: "--font-heading", display: "swap" });
+// Editorial serif for headings, a friendly highly legible sans for reading, and a mono for small labels.
+const serif = Instrument_Serif({ subsets: ["latin"], weight: "400", style: ["normal", "italic"], variable: "--font-serif", display: "swap" });
+const body = Figtree({ subsets: ["latin"], variable: "--font-body", display: "swap" });
+const label = Geist_Mono({ subsets: ["latin"], variable: "--font-label", display: "swap" });
 
 export const metadata: Metadata = {
   title: { default: "AstroVerse · Your numbers, your stars, your hand", template: "%s · AstroVerse" },
@@ -23,12 +16,12 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#faf9f6",
+  themeColor: "#f2f0eb",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${body.variable} ${heading.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${serif.variable} ${body.variable} ${label.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: TEXT_SIZE_SCRIPT }} />
       </head>

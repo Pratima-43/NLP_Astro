@@ -17,9 +17,9 @@ import { formatDate } from "@/lib/format";
 
 function Card({ title, subtitle, children, id }: { title: string; subtitle?: ReactNode; children: ReactNode; id?: string }) {
   return (
-    <section aria-labelledby={id} className="flex flex-col gap-5 rounded-3xl border border-line bg-surface p-6 sm:p-8">
+    <section aria-labelledby={id} className="flex flex-col gap-5 rounded-[2rem] border border-line bg-surface p-6 sm:p-10">
       <div className="flex flex-col gap-1">
-        <h2 id={id} className="text-2xl font-semibold">{title}</h2>
+        <h2 id={id} className="text-4xl">{title}</h2>
         {subtitle && <p className="text-lg text-ink-2">{subtitle}</p>}
       </div>
       {children}
@@ -34,7 +34,7 @@ export function MeView() {
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-8">
       <header className="flex flex-col gap-2">
-        <h1 className="text-4xl font-semibold">Me</h1>
+        <h1 className="text-6xl sm:text-7xl">Me</h1>
         <p className="text-xl text-ink-2">Signed in as <strong className="text-ink">{user.email}</strong></p>
       </header>
 
@@ -187,7 +187,7 @@ function EmailCard() {
           aria-labelledby="security-email-label"
           disabled={busy}
           onClick={toggle}
-          className={`relative flex h-10 w-[4.5rem] shrink-0 items-center rounded-full border-2 transition-colors ${on ? "border-good bg-good" : "border-line-2 bg-line"}`}
+          className={`relative flex h-10 w-[4.5rem] shrink-0 items-center rounded-full border-[1.5px] transition-colors ${on ? "border-good bg-good" : "border-line-2 bg-line"}`}
         >
           <span className={`absolute h-7 w-7 rounded-full bg-white shadow transition-transform ${on ? "translate-x-[2.1rem]" : "translate-x-1"}`} />
           <span className="sr-only">{on ? "On" : "Off"}</span>
@@ -266,7 +266,7 @@ function DeleteCard() {
   }
 
   return (
-    <details className="rounded-3xl border-2 border-bad/30 bg-surface">
+    <details className="rounded-[1.75rem] border-[1.5px] border-bad/30 bg-surface">
       <summary className="flex min-h-16 items-center gap-3 px-6 text-xl font-semibold text-bad">
         <Trash2 className="h-6 w-6" aria-hidden="true" />
         Delete my account

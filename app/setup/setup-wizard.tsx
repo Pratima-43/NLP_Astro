@@ -152,18 +152,18 @@ export function SetupWizard() {
     return (
       <div className="flex flex-col gap-7 rise-in">
         <div className="flex flex-col gap-2">
-          <p className="text-lg font-semibold text-good">All questions answered</p>
-          <h1 ref={heading} tabIndex={-1} className="text-3xl font-semibold outline-none sm:text-4xl">
+          <p className="eyebrow text-good">All questions answered</p>
+          <h1 ref={heading} tabIndex={-1} className="text-5xl outline-none sm:text-6xl">
             Is this right, {firstName(name)}?
           </h1>
-          <p className="text-lg text-ink-2">Check your answers. Tap “Change” to fix anything.</p>
+          <p className="text-xl text-ink-2">Check your answers. Tap “Change” to fix anything.</p>
         </div>
-        <dl className="flex flex-col divide-y divide-line rounded-2xl border border-line bg-surface">
+        <dl className="flex flex-col divide-y divide-line border-y border-ink/80">
           {rows.map((row) => (
-            <div key={row.key} className="flex items-center gap-4 px-5 py-4">
+            <div key={row.key} className="flex items-center gap-4 py-5">
               <div className="flex min-w-0 flex-1 flex-col">
-                <dt className="text-base text-ink-2">{row.label}</dt>
-                <dd className="text-xl font-semibold">{row.value}</dd>
+                <dt className="eyebrow text-ink-3">{row.label}</dt>
+                <dd className="font-display text-3xl">{row.value}</dd>
               </div>
               <Button variant="secondary" onClick={() => edit(row.key)} icon={<Pencil className="h-4 w-4" aria-hidden="true" />}>
                 Change<span className="sr-only"> {row.label.toLowerCase()}</span>
@@ -184,21 +184,21 @@ export function SetupWizard() {
 
   const view = questionView[step];
   return (
-    <form onSubmit={next} noValidate className="flex flex-col gap-7">
+    <form onSubmit={next} noValidate className="flex flex-col gap-10">
       <div className="flex flex-col gap-3">
-        <p className="text-lg font-semibold text-ink-2">
-          Question {index + 1} of {QUESTIONS.length}
+        <p className="eyebrow text-ink-2">
+          Question {String(index + 1).padStart(2, "0")} / {String(QUESTIONS.length).padStart(2, "0")}
         </p>
         <div className="flex gap-1.5" aria-hidden="true">
           {QUESTIONS.map((q, i) => (
-            <span key={q} className={`h-2 flex-1 rounded-full ${i <= index ? "bg-ink" : "bg-line"}`} />
+            <span key={q} className={`h-[3px] flex-1 rounded-full transition-colors duration-500 ${i <= index ? "bg-ink" : "bg-line"}`} />
           ))}
         </div>
       </div>
-      <div key={step} className="flex flex-col gap-5 rise-in">
+      <div key={step} className="flex flex-col gap-7 rise-in">
         <div className="flex flex-col gap-2">
-          <h1 ref={heading} tabIndex={-1} className="text-3xl font-semibold outline-none sm:text-4xl">{view.title}</h1>
-          <p className="text-lg text-ink-2">{view.hint}</p>
+          <h1 ref={heading} tabIndex={-1} className="text-5xl outline-none sm:text-6xl">{view.title}</h1>
+          <p className="text-xl leading-relaxed text-ink-2">{view.hint}</p>
         </div>
         {view.body}
         {error && <Notice tone="error">{error}</Notice>}

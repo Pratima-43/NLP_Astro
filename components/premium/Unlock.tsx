@@ -54,9 +54,9 @@ export function PremiumGate({ title, children }: { title: string; children: Reac
   const { isPremium } = useAuth();
   if (isPremium) return <>{children}</>;
   return (
-    <section className="grid gap-8 rounded-3xl border border-line bg-surface p-6 sm:p-8 lg:grid-cols-2">
+    <section className="grid gap-8 rounded-[2rem] border border-line bg-surface p-6 sm:p-10 lg:grid-cols-2">
       <div className="flex flex-col gap-4">
-        <h2 className="text-2xl font-semibold">{title} is part of Premium</h2>
+        <h2 className="text-4xl">{title} is part of Premium</h2>
         <p className="text-lg text-ink-2">Premium puts your three readings together. It adds two things:</p>
         <ul className="flex flex-col gap-3">
           <li className="flex gap-3 text-lg">

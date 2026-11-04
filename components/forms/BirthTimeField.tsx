@@ -71,7 +71,7 @@ export function BirthTimeField({ initial, error, onChange }: { initial: TimePart
                 aria-checked={active}
                 disabled={disabled}
                 onClick={() => update({ period: value })}
-                className={`flex min-h-16 flex-col items-center justify-center rounded-xl border-2 px-3 py-2 ${active ? "border-ink bg-ink text-white" : "border-line-2 bg-surface text-ink hover:border-ink"}`}
+                className={`flex min-h-16 flex-col items-center justify-center rounded-2xl border-[1.5px] px-3 py-2 ${active ? "border-ink bg-ink text-moon" : "border-line-2 bg-surface text-ink hover:border-ink"}`}
               >
                 <span className="text-lg font-bold">{short}</span>
                 <span className={`text-sm ${active ? "text-white/85" : "text-ink-2"}`}>{words}</span>
@@ -85,9 +85,9 @@ export function BirthTimeField({ initial, error, onChange }: { initial: TimePart
         type="button"
         aria-pressed={parts.unknown}
         onClick={() => update({ unknown: !parts.unknown })}
-        className={`flex min-h-14 items-center gap-3 rounded-xl border-2 px-4 text-left text-lg font-semibold ${parts.unknown ? "border-ink bg-ink text-white" : "border-dashed border-line-2 bg-surface text-ink hover:border-ink"}`}
+        className={`flex min-h-14 items-center gap-3 rounded-2xl border-[1.5px] px-4 text-left text-lg font-semibold ${parts.unknown ? "border-ink bg-ink text-moon" : "border-dashed border-line-2 bg-surface text-ink hover:border-ink"}`}
       >
-        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border-2 ${parts.unknown ? "border-white bg-white text-ink" : "border-ink-3"}`} aria-hidden="true">
+        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border-[1.5px] ${parts.unknown ? "border-white bg-white text-ink" : "border-ink-3"}`} aria-hidden="true">
           {parts.unknown && <Check className="h-5 w-5" />}
         </span>
         I don’t know my birth time

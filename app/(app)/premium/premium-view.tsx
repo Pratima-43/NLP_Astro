@@ -24,13 +24,13 @@ export function PremiumView() {
         Back to home
       </Link>
       <header className="flex flex-col gap-3">
-        <h1 className="text-4xl font-semibold">{isPremium ? "Premium is on" : "Unlock Premium"}</h1>
+        <h1 className="text-6xl sm:text-7xl">{isPremium ? "Premium is on" : "Unlock Premium"}</h1>
         <p className="text-xl text-ink-2">Your three readings are always free. Premium puts them together.</p>
       </header>
 
       <ul className="grid gap-4 sm:grid-cols-2">
         {INCLUDED.map((item) => (
-          <li key={item.title} className="flex flex-col gap-3 rounded-3xl border border-line bg-surface p-6">
+          <li key={item.title} className="flex flex-col gap-3 rounded-[1.75rem] border border-line bg-surface p-6">
             <item.icon className="h-8 w-8 text-story" aria-hidden="true" />
             <h2 className="text-xl font-semibold">{item.title}</h2>
             <p className="text-lg text-ink-2">{item.text}</p>
@@ -39,7 +39,7 @@ export function PremiumView() {
       </ul>
 
       {isPremium ? (
-        <section className="flex flex-col gap-5 rounded-3xl border border-line bg-surface p-6 sm:p-8">
+        <section className="flex flex-col gap-5 rounded-[2rem] border border-line bg-surface p-6 sm:p-10">
           <Notice tone="success" title={`You have ${user.premium.plan}`}>
             {user.premium.expiresAt ? `It lasts until ${formatDate(user.premium.expiresAt)}.` : "Enjoy your readings."}
           </Notice>
@@ -49,9 +49,9 @@ export function PremiumView() {
           </div>
         </section>
       ) : (
-        <section className="flex flex-col gap-5 rounded-3xl border border-line bg-surface p-6 sm:p-8">
+        <section className="flex flex-col gap-5 rounded-[2rem] border border-line bg-surface p-6 sm:p-10">
           <div className="flex flex-col gap-1">
-            <h2 className="text-2xl font-semibold">Have a code?</h2>
+            <h2 className="text-4xl">Have a code?</h2>
             <p className="text-lg text-ink-2">Premium is unlocked with a code. No card or payment is needed.</p>
           </div>
           <UnlockForm />

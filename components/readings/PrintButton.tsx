@@ -14,7 +14,7 @@ export function PrintButton() {
     <button
       type="button"
       onClick={print}
-      className="no-print inline-flex min-h-12 items-center gap-2 rounded-xl border-2 border-line-2 bg-surface px-4 text-base font-semibold text-ink hover:border-ink"
+      className="no-print inline-flex min-h-12 items-center gap-2 rounded-full border-[1.5px] border-ink/70 px-5 text-base font-semibold text-ink hover:bg-ink hover:text-moon"
     >
       <Printer className="h-5 w-5" aria-hidden="true" />
       Save as PDF

@@ -15,7 +15,7 @@ export function HandChoice({ value, onChange, label = "Which hand?" }: { value: 
             role="radio"
             aria-checked={active}
             onClick={() => onChange(hand)}
-            className={`relative flex min-h-36 flex-col items-center justify-center gap-3 rounded-2xl border-2 p-4 ${active ? "border-ink bg-ink text-white" : "border-line-2 bg-surface text-ink hover:border-ink"}`}
+            className={`relative flex min-h-36 flex-col items-center justify-center gap-3 rounded-2xl border-[1.5px] p-4 ${active ? "border-ink bg-ink text-moon" : "border-line-2 bg-surface text-ink hover:border-ink"}`}
           >
             {active && <Check className="absolute right-3 top-3 h-6 w-6" aria-hidden="true" />}
             <Hand className={`h-14 w-14 ${hand === "left" ? "-scale-x-100" : ""}`} strokeWidth={1.6} aria-hidden="true" />

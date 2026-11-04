@@ -137,19 +137,17 @@ function NumbersResult({ report, user, onRemake }: { report: NumerologyReport; u
 
       <section aria-labelledby="four-numbers" className="flex flex-col gap-5">
         <SectionTitle id="four-numbers" title="Your four numbers" subtitle="Tap a number to read about it." />
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4">
           {NUMBER_ORDER.map((key) => {
             const calc = c[key];
             const info = NUMBER_INFO[key];
             return (
-              <a key={key} href={`#${key}`} className="flex flex-col gap-3 rounded-3xl border border-line bg-surface p-5 hover:border-num">
-                <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-num-soft font-display text-4xl font-semibold text-num-ink" aria-hidden="true">
+              <a key={key} href={`#${key}`} className="group flex flex-col gap-3 border-b border-l border-line px-5 py-7 first:border-l-0 first:pl-0 max-lg:[&:nth-child(3)]:border-l-0 max-lg:[&:nth-child(3)]:pl-0">
+                <span className="eyebrow text-num">{info.sanskrit}</span>
+                <span className="font-display text-[6.5rem] leading-[0.85] text-ink transition-colors group-hover:text-num" aria-hidden="true">
                   {calc.number}
                 </span>
-                <span className="flex flex-col">
-                  <span className="text-lg font-semibold leading-snug">{info.name}</span>
-                  <span className="text-base text-ink-2">{info.sanskrit}</span>
-                </span>
+                <span className="text-xl font-semibold leading-snug">{info.name}</span>
                 <span className="text-base text-ink-2">
                   {calc.planet ? `Linked with ${PLANET_WORDS[calc.planet] ?? calc.planet}` : `For ${report.target_year}`}
                 </span>
@@ -161,14 +159,14 @@ function NumbersResult({ report, user, onRemake }: { report: NumerologyReport; u
       </section>
 
       {synthesis?.year_focus?.text && (
-        <section className="flex flex-col gap-2 rounded-3xl border-2 border-num bg-surface p-6">
-          <h2 className="text-2xl font-semibold">Your year {report.target_year}</h2>
-          <p className="text-lg leading-relaxed">{synthesis.year_focus.text}</p>
+        <section className="grid gap-4 rounded-[2rem] bg-num-soft p-6 sm:p-10 md:grid-cols-[14rem_1fr] md:gap-10">
+          <h2 className="text-5xl">Your year <em>{report.target_year}</em></h2>
+          <p className="text-xl leading-relaxed">{synthesis.year_focus.text}</p>
         </section>
       )}
 
       {(synthesis?.resonances?.length || synthesis?.tensions?.length) ? (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-x-10 gap-y-8 md:grid-cols-2">
           <PointList title="Where your numbers agree" kind="good" items={(synthesis.resonances ?? []).map((r) => r.text)} />
           <PointList title="Where they pull different ways" kind="care" items={(synthesis.tensions ?? []).map((t) => t.text)} />
         </div>
@@ -199,40 +197,40 @@ function NumberSection({ component, report }: { component: NumerologyComponent; 
     : [...fallback.good, ...fallback.care].join(". ");
 
   return (
-    <section id={component} aria-labelledby={`${component}-title`} className="flex scroll-mt-28 flex-col gap-5 rounded-3xl border border-line bg-surface p-5 sm:p-7">
+    <section id={component} aria-labelledby={`${component}-title`} className="grid scroll-mt-28 gap-6 border-t border-ink/80 pt-8 md:grid-cols-[11rem_1fr] md:gap-10">
+      <div className="flex flex-row items-end gap-4 md:flex-col md:items-start">
+        <span className="font-display text-[8rem] leading-[0.8] text-num" aria-hidden="true">{calc.number}</span>
+        <p className="eyebrow pb-2 text-ink-3">{info.sanskrit}</p>
+      </div>
+      <div className="flex min-w-0 flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-num font-display text-4xl font-semibold text-white" aria-hidden="true">
-            {calc.number}
-          </span>
-          <div className="flex flex-col">
-            <h2 id={`${component}-title`} className="text-2xl font-semibold">
-              {info.name}: {calc.number}
-            </h2>
-            <p className="text-base text-ink-2">{info.sanskrit} · {component === "personal_year" ? `for ${report.target_year}` : info.about.split(". ")[0]}</p>
-          </div>
+        <div className="flex flex-col gap-2">
+          <h2 id={`${component}-title`} className="text-4xl sm:text-5xl">
+            {info.name} <span className="sr-only">{calc.number}</span>
+          </h2>
+          <p className="text-lg text-ink-2">{component === "personal_year" ? `What ${report.target_year} is about for you.` : info.about}</p>
         </div>
         <ReadAloud text={listenText} />
       </div>
 
       {component === "moolank" && calc.compound_number != null && calc.compound_number >= 10 && (
-        <p className="rounded-2xl bg-paper px-4 py-3 text-lg">
+        <p className="rounded-2xl bg-num-soft px-5 py-4 text-lg">
           You were born on the <strong>{ordinal(calc.compound_number)}</strong>. The books also read {calc.compound_number} as a number of its own, so some meanings below are about that exact date.
         </p>
       )}
 
       {isWritten ? (
         <>
-          {written.headline && <p className="font-display text-xl font-semibold">{written.headline}</p>}
-          {written.summary && <p className="text-lg leading-relaxed">{written.summary}</p>}
-          <div className="grid gap-4 lg:grid-cols-2">
-            <PointList title="Good things" kind="good" items={written.strengths.map((s) => s.text)} />
-            <PointList title="Be careful about" kind="care" items={written.challenges.map((s) => s.text)} />
+          {written.headline && <p className="font-display text-3xl leading-tight">{written.headline}</p>}
+          {written.summary && <p className="text-xl leading-relaxed">{written.summary}</p>}
+          <div className="grid gap-x-10 gap-y-8 lg:grid-cols-2">
+            <PointList title="Lean into" kind="good" items={written.strengths.map((s) => s.text)} />
+            <PointList title="Go easy on" kind="care" items={written.challenges.map((s) => s.text)} />
           </div>
           {written.key_themes.length > 0 && (
             <ul className="flex flex-col gap-2">
               {written.key_themes.map((t) => (
-                <li key={t.text} className="rounded-2xl bg-num-soft px-4 py-3 text-lg">
+                <li key={t.text} className="border-l-2 border-num py-1 pl-5 text-lg">
                   {t.title && <strong className="text-num-ink">{t.title}: </strong>}
                   {t.text}
                 </li>
@@ -241,14 +239,15 @@ function NumberSection({ component, report }: { component: NumerologyComponent; 
           )}
         </>
       ) : records.length ? (
-        <div className="grid gap-4 lg:grid-cols-2">
-          <PointList title="Good things" kind="good" items={fallback.good} />
-          <PointList title="Be careful about" kind="care" items={fallback.care} />
+        <div className="grid gap-x-10 gap-y-8 lg:grid-cols-2">
+          <PointList title="Lean into" kind="good" items={fallback.good} />
+          <PointList title="Go easy on" kind="care" items={fallback.care} />
           <PointList title="Also linked with" kind="other" items={fallback.other} />
         </div>
       ) : (
         <p className="text-lg text-ink-2">The books in our library don’t describe this number yet, so we don’t make anything up.</p>
       )}
+      </div>
     </section>
   );
 }
@@ -259,7 +258,7 @@ function NumberWorking({ component, report }: { component: NumerologyComponent; 
   const records = report.interpretations[component] ?? [];
   return (
     <div className="flex flex-col gap-4">
-      <h3 className="text-xl font-semibold">{info.name} ({info.sanskrit}) = {calc.number}</h3>
+      <h3 className="text-3xl">{info.name} ({info.sanskrit}) = {calc.number}</h3>
       <ol className="flex flex-col gap-2">
         {calc.steps.map((s, i) => (
           <li key={i} className="flex gap-3 text-lg">

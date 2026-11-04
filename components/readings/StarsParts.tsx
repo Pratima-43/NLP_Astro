@@ -27,13 +27,13 @@ export function BirthChart({ chart }: { chart: VedicChart }) {
   const lagna = chart.lagna.sign_index;
   return (
     <svg viewBox="0 0 300 300" className="mx-auto w-full max-w-[22rem]" role="img" aria-label="Your birth chart drawn the North-Indian way">
-      <rect x="2" y="2" width="296" height="296" rx="8" fill="#ffffff" stroke="#4338ca" strokeWidth="2.5" />
-      <g stroke="#4338ca" strokeWidth="1.5" fill="none">
+      <rect x="2" y="2" width="296" height="296" rx="8" fill="#faf9f6" stroke="#121211" strokeWidth="1.5" />
+      <g stroke="#121211" strokeWidth="0.9" fill="none">
         <line x1="2" y1="2" x2="298" y2="298" />
         <line x1="298" y1="2" x2="2" y2="298" />
         <polygon points="150,2 298,150 150,298 2,150" />
       </g>
-      <polygon points="150,2 224,76 150,150 76,76" fill="#e6e9fe" opacity="0.7" />
+      <polygon points="150,2 224,76 150,150 76,76" fill="#e5e4f1" opacity="0.9" />
       {Object.entries(HOUSE_POS).map(([houseText, [x, y]]) => {
         const house = Number(houseText);
         const sign = ((lagna + house - 1) % 12) + 1;
@@ -70,16 +70,16 @@ export function ChartLegend() {
 /** Eight life areas as simple bars with a word, plus what is "switched on" by the current period. */
 export function LifeAreas({ domains }: { domains: Record<string, DomainOutlook> }) {
   return (
-    <ul className="grid gap-3 md:grid-cols-2">
+    <ul className="grid gap-x-12 md:grid-cols-2">
       {Object.entries(domains).map(([key, d]) => {
         const word = DOMAIN_WORDS[d.assessment];
         return (
-          <li key={key} className="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-4">
+          <li key={key} className="flex flex-col gap-3 border-b border-line py-5">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-lg font-semibold">{d.label.replace("&", "and")}</span>
-              <span className="text-base font-bold" style={{ color: word.color }}>{word.label}</span>
+              <span className="font-display text-2xl">{d.label.replace("&", "and")}</span>
+              <span className="eyebrow" style={{ color: word.color }}>{word.label}</span>
             </div>
-            <div className="h-3 overflow-hidden rounded-full bg-line" role="img" aria-label={`${d.score} out of 100`}>
+            <div className="h-1.5 overflow-hidden rounded-full bg-line" role="img" aria-label={`${d.score} out of 100`}>
               <div className="h-full rounded-full" style={{ width: `${d.score}%`, background: word.color }} />
             </div>
             {d.activated_by_current_dasha.length > 0 && (
@@ -131,9 +131,9 @@ export function PeriodTimeline({ chart }: { chart: VedicChart }) {
   return (
     <ol className="flex flex-col gap-2">
       {mahadashas.map((m) => (
-        <li key={`${m.lord}-${m.start}`} className={`flex flex-col gap-2 rounded-2xl px-4 py-3 ${m.is_active ? "border-2 border-star bg-star-soft" : "bg-paper"}`}>
+        <li key={`${m.lord}-${m.start}`} className={`flex flex-col gap-2 border-b py-4 ${m.is_active ? "border-star" : "border-line"}`}>
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="text-lg font-semibold">{m.lord} period {m.is_active && <span className="ml-1 rounded-full bg-star px-2.5 py-0.5 text-sm text-white">Now</span>}</span>
+            <span className="font-display text-2xl">{m.lord} period {m.is_active && <span className="eyebrow ml-2 rounded-full bg-star px-2.5 py-1 align-middle text-moon">Now</span>}</span>
             <span className="text-base text-ink-2">{formatMonthYear(m.start)} – {formatMonthYear(m.end)}</span>
           </div>
           {m.is_active && m.antardashas && (

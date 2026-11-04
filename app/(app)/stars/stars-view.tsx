@@ -157,11 +157,11 @@ function StarsResult({ reading, user, onRemake }: { reading: AstrologyReading; u
 
       <section aria-labelledby="chart-facts" className="flex flex-col gap-5">
         <SectionTitle id="chart-facts" title="Your chart at a glance" />
-        <div className={`grid gap-3 sm:grid-cols-2 ${facts.length === 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
+        <div className={`grid gap-x-10 sm:grid-cols-2 ${facts.length === 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
           {facts.map((f) => (
-            <div key={f.name} className="flex flex-col gap-2 rounded-3xl border border-line bg-surface p-5">
-              <span className="text-base font-semibold text-star">{f.name} <span className="font-normal text-ink-2">({f.sanskrit})</span></span>
-              <span className="font-display text-3xl font-semibold">{f.value}</span>
+            <div key={f.name} className="flex flex-col gap-2 border-b border-line py-7">
+              <span className="eyebrow text-star">{f.name} · {f.sanskrit}</span>
+              <span className="font-display text-6xl leading-none">{f.value}</span>
               <span className="text-base text-ink-2">{f.extra}</span>
               <span className="text-base text-ink-2">{f.about}</span>
             </div>
@@ -170,8 +170,9 @@ function StarsResult({ reading, user, onRemake }: { reading: AstrologyReading; u
       </section>
 
       {period && (
-        <section className="flex flex-col gap-3 rounded-3xl border-2 border-star bg-surface p-6">
-          <h2 className="text-2xl font-semibold">What’s happening now</h2>
+        <section className="flex flex-col gap-5 rounded-[2rem] bg-star-soft p-6 sm:p-10">
+          <p className="eyebrow text-star">Right now</p>
+          <h2 className="text-5xl">What’s happening now</h2>
           <p className="text-lg leading-relaxed">
             You are in a <strong>{period.mahadasha} period</strong> until {formatMonthYear(period.mahadasha_end)}. Inside it, a shorter{" "}
             <strong>{period.antardasha} period</strong> runs from {formatMonthYear(period.antardasha_start)} to {formatMonthYear(period.antardasha_end)}.
@@ -203,9 +204,9 @@ function StarsResult({ reading, user, onRemake }: { reading: AstrologyReading; u
       {!written && (
         <section aria-labelledby="books" className="flex flex-col gap-5">
           <SectionTitle id="books" title="What the classical books say about your chart" />
-          <div className="grid gap-4 lg:grid-cols-2">
-            <PointList title="Good things" kind="good" items={groups.good} />
-            <PointList title="Be careful about" kind="care" items={groups.care} />
+          <div className="grid gap-x-10 gap-y-8 lg:grid-cols-2">
+            <PointList title="Lean into" kind="good" items={groups.good} />
+            <PointList title="Go easy on" kind="care" items={groups.care} />
             <PointList title="Also in your chart" kind="other" items={groups.other} />
           </div>
         </section>
@@ -221,10 +222,10 @@ function StarsResult({ reading, user, onRemake }: { reading: AstrologyReading; u
       {chart.yogas.length > 0 && (
         <section aria-labelledby="yogas" className="flex flex-col gap-5">
           <SectionTitle id="yogas" title="Special patterns in your chart" subtitle="A yoga is a pattern of planets that the old books link to a particular result." />
-          <ul className="grid gap-3 md:grid-cols-2">
+          <ul className="grid gap-x-12 md:grid-cols-2">
             {chart.yogas.map((y) => (
-              <li key={`${y.key}-${y.condition}`} className="flex flex-col gap-1 rounded-2xl border border-line bg-surface p-4">
-                <span className="text-lg font-semibold">{y.name}</span>
+              <li key={`${y.key}-${y.condition}`} className="flex flex-col gap-2 border-b border-line py-6">
+                <span className="font-display text-3xl">{y.name}</span>
                 <span className="text-base text-ink-2">{y.condition}</span>
               </li>
             ))}
@@ -246,15 +247,15 @@ function StarsResult({ reading, user, onRemake }: { reading: AstrologyReading; u
             </div>
           </div>
           <div className="flex flex-col gap-3">
-            <h3 className="text-xl font-semibold">Every planet</h3>
+            <h3 className="text-3xl">Every planet</h3>
             <PlanetTable planets={chart.planets} timeUnknown={timeUnknown} />
           </div>
           <div className="flex flex-col gap-3">
-            <h3 className="text-xl font-semibold">Your life periods (Vimshottari dasha)</h3>
+            <h3 className="text-3xl">Your life periods (Vimshottari dasha)</h3>
             <PeriodTimeline chart={chart} />
           </div>
           <div className="flex flex-col gap-3">
-            <h3 className="text-xl font-semibold">The statements from the books ({uniqueEvidence(reading.evidence).length})</h3>
+            <h3 className="text-3xl">The statements from the books ({uniqueEvidence(reading.evidence).length})</h3>
             <ul className="flex flex-col gap-2">
               {uniqueEvidence(reading.evidence).map((e) => (
                 <SourceItem key={e.claim} claim={e.claim} source={e.source_name} reasons={e.reasons} />

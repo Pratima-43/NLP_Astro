@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
-import { ChevronDown } from "lucide-react";
+import { Plus } from "lucide-react";
 
-/** A section that opens and closes (native <details>, so it works with keyboards and screen readers). */
+/** A section that opens and closes (native <details>: keyboard and screen-reader friendly). */
 export function Disclosure({ title, subtitle, icon, children, defaultOpen, className = "" }: {
   title: ReactNode;
   subtitle?: ReactNode;
@@ -11,19 +11,18 @@ export function Disclosure({ title, subtitle, icon, children, defaultOpen, class
   className?: string;
 }) {
   return (
-    <details open={defaultOpen} className={`rounded-2xl border border-line bg-surface ${className}`}>
-      <summary className="flex min-h-16 items-center gap-4 rounded-2xl px-5 py-4 hover:bg-black/[0.02]">
+    <details open={defaultOpen} className={`group border-y border-line ${className}`}>
+      <summary className="flex min-h-20 items-center gap-4 py-5 hover:opacity-80">
         {icon}
-        <span className="flex min-w-0 flex-1 flex-col">
-          <span className="font-display text-lg font-semibold text-ink">{title}</span>
+        <span className="flex min-w-0 flex-1 flex-col gap-1">
+          <span className="font-display text-2xl leading-tight sm:text-3xl">{title}</span>
           {subtitle && <span className="text-base text-ink-2">{subtitle}</span>}
         </span>
-        <span className="flex shrink-0 items-center gap-1.5 text-base font-semibold text-ink-2">
-          <span className="hidden sm:inline">Open</span>
-          <ChevronDown className="chevron h-6 w-6 transition-transform" aria-hidden="true" />
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-[1.5px] border-ink/70" aria-hidden="true">
+          <Plus className="chevron h-5 w-5 transition-transform duration-300" />
         </span>
       </summary>
-      <div className="border-t border-line px-5 py-5">{children}</div>
+      <div className="pb-8 pt-2">{children}</div>
     </details>
   );
 }

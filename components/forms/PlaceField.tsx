@@ -85,7 +85,7 @@ export function PlaceField({ initial, error, onChange }: { initial: string; erro
                 role="radio"
                 aria-checked={active}
                 onClick={() => choose(r.name)}
-                className={`flex min-h-14 items-start gap-3 rounded-xl border-2 px-4 py-3 text-left ${active ? "border-ink bg-ink text-white" : "border-line-2 bg-surface hover:border-ink"}`}
+                className={`flex min-h-14 items-start gap-3 rounded-2xl border-[1.5px] px-4 py-3 text-left ${active ? "border-ink bg-ink text-moon" : "border-line-2 bg-surface hover:border-ink"}`}
               >
                 <MapPin className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
                 <span className="flex flex-col">

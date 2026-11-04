@@ -33,9 +33,12 @@ function MeButton() {
     <Link
       href="/me"
       aria-current={active ? "page" : undefined}
-      className={`flex min-h-12 items-center gap-2 rounded-xl px-2 text-base font-semibold hover:bg-black/[0.05] ${active ? "text-ink" : "text-ink-2"}`}
+      className="flex min-h-12 items-center gap-2.5 rounded-full py-1 pl-1 pr-3 text-base font-semibold text-ink hover:bg-black/[0.04]"
     >
-      <span className={`flex h-9 w-9 items-center justify-center rounded-full font-display text-base ${active ? "bg-ink text-white" : "bg-line text-ink"}`} aria-hidden="true">
+      <span
+        className={`flex h-10 w-10 items-center justify-center rounded-full font-display text-xl ${active ? "bg-ink text-moon" : "border-[1.5px] border-ink/70"}`}
+        aria-hidden="true"
+      >
         {initial}
       </span>
       <span>Me</span>
@@ -49,13 +52,13 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <a href="#main" className="sr-only z-[60] rounded-xl bg-ink px-4 py-3 text-white focus:not-sr-only focus:fixed focus:left-3 focus:top-3">
+      <a href="#main" className="sr-only z-[60] rounded-full bg-ink px-5 py-3 text-moon focus:not-sr-only focus:fixed focus:left-3 focus:top-3">
         Skip to main content
       </a>
-      <header className="sticky top-0 z-40 border-b border-line bg-paper/95 backdrop-blur">
-        <div className="mx-auto flex h-18 max-w-6xl items-center gap-3 px-4 sm:px-6">
+      <header className="sticky top-0 z-40 border-b border-line bg-paper/90 backdrop-blur-md">
+        <div className="mx-auto flex h-[4.75rem] max-w-6xl items-center gap-3 px-5 sm:px-8">
           <Logo href="/home" />
-          <nav aria-label="Main" className="ml-4 hidden flex-1 items-center gap-1 md:flex">
+          <nav aria-label="Main" className="ml-6 hidden flex-1 items-center gap-1 md:flex">
             {NAV.map((item) => {
               const active = isActive(pathname, item.href);
               return (
@@ -63,16 +66,16 @@ export function AppShell({ children }: { children: ReactNode }) {
                   key={item.href}
                   href={item.href}
                   aria-current={active ? "page" : undefined}
-                  className={`relative flex min-h-12 items-center gap-2 rounded-xl px-3.5 text-base font-semibold transition-colors ${active ? "bg-ink text-white" : "text-ink-2 hover:bg-black/[0.05] hover:text-ink"}`}
+                  className={`relative flex min-h-12 items-center gap-2 rounded-full px-4 text-base font-medium transition-colors ${active ? "text-ink" : "text-ink-2 hover:text-ink"}`}
                 >
-                  <item.icon className="h-5 w-5" aria-hidden="true" />
                   {item.label}
                   {item.premium && !isPremium && (
                     <>
-                      <Lock className="h-4 w-4 opacity-70" aria-hidden="true" />
+                      <Lock className="h-3.5 w-3.5 opacity-60" aria-hidden="true" />
                       <span className="sr-only">(needs Premium)</span>
                     </>
                   )}
+                  {active && <span className="absolute bottom-1.5 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-ink" aria-hidden="true" />}
                 </Link>
               );
             })}
@@ -84,11 +87,11 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-4 pb-36 pt-6 sm:px-6 sm:pt-10 md:pb-20">
+      <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-5 pb-40 pt-8 sm:px-8 sm:pt-12 md:pb-24">
         {children}
       </main>
 
-      <nav aria-label="Main" className="pb-safe fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface md:hidden">
+      <nav aria-label="Main" className="pb-safe fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface/95 backdrop-blur-md md:hidden">
         <ul className="mx-auto grid max-w-lg grid-cols-5">
           {NAV.map((item) => {
             const active = isActive(pathname, item.href);
@@ -97,14 +100,14 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <Link
                   href={item.href}
                   aria-current={active ? "page" : undefined}
-                  className={`relative flex min-h-[4.25rem] flex-col items-center justify-center gap-1 text-sm font-semibold ${active ? "text-ink" : "text-ink-3"}`}
+                  className={`relative flex min-h-[4.5rem] flex-col items-center justify-center gap-1 text-[0.8125rem] font-semibold ${active ? "text-ink" : "text-ink-3"}`}
                 >
-                  {active && <span className="absolute inset-x-4 top-0 h-1 rounded-b-full bg-ink" aria-hidden="true" />}
                   <span className="relative">
-                    <item.icon className="h-6 w-6" strokeWidth={active ? 2.5 : 2} aria-hidden="true" />
+                    <item.icon className="h-6 w-6" strokeWidth={active ? 2 : 1.5} aria-hidden="true" />
                     {item.premium && !isPremium && <Lock className="absolute -right-2.5 -top-1.5 h-3.5 w-3.5" aria-hidden="true" />}
                   </span>
                   {item.label}
+                  <span className={`h-1.5 w-1.5 rounded-full ${active ? "bg-ink" : "bg-transparent"}`} aria-hidden="true" />
                   {item.premium && !isPremium && <span className="sr-only">(needs Premium)</span>}
                 </Link>
               </li>

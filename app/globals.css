@@ -1,51 +1,59 @@
 @import "tailwindcss";
 
 /*
-  AstroVerse design tokens.
-  Plain, calm and high-contrast: near-white paper, ink text, and one colour per reading
-  (turmeric for Numbers, indigo for Stars, teal for Hand, rose for the Full Story, sky for Ask).
-  Every text colour below passes WCAG AA on white; body text passes AAA.
+  AstroVerse · "Night & Paper"
+  An editorial, near-monochrome system: warm paper and ink for reading, deep night panels for the
+  signature moments, hairlines instead of boxes, and one muted accent per reading.
+  All text colours pass WCAG AA on their background; body text passes AAA.
 */
 @theme {
-  --color-paper: #faf9f6;
-  --color-surface: #ffffff;
-  --color-ink: #1c1a17;
-  --color-ink-2: #4a453f;
-  --color-ink-3: #66605a;
-  --color-line: #e6e2da;
-  --color-line-2: #cfc8bd;
-  --color-focus: #1d4ed8;
+  --color-paper: #f2f0eb;
+  --color-surface: #faf9f6;
+  --color-ink: #121211;
+  --color-ink-2: #464440;
+  --color-ink-3: #66635c;
+  --color-line: #d9d5cc;
+  --color-line-2: #b9b4a9;
+  --color-focus: #2f5fd0;
 
-  --color-num: #b45309;
-  --color-num-soft: #fdf1d8;
-  --color-num-ink: #713f12;
-  --color-star: #4338ca;
-  --color-star-soft: #e6e9fe;
-  --color-star-ink: #312e81;
-  --color-hand: #0f766e;
-  --color-hand-soft: #d5f5ef;
-  --color-hand-ink: #134e4a;
-  --color-story: #be185d;
-  --color-story-soft: #fce7f1;
-  --color-story-ink: #831843;
-  --color-ask: #0369a1;
-  --color-ask-soft: #e0f0fb;
-  --color-ask-ink: #0c4a6e;
+  --color-night: #0c0c10;
+  --color-night-2: #17171d;
+  --color-night-line: #2c2c35;
+  --color-moon: #efede7;
+  --color-moon-2: #aaa69d;
 
-  --color-good: #15803d;
-  --color-good-soft: #e3f6e8;
-  --color-care: #9a3412;
-  --color-care-soft: #fdecdc;
-  --color-bad: #b91c1c;
-  --color-bad-soft: #fde4e4;
+  /* Muted accents: text colour, ink colour, and a barely-there tint. */
+  --color-num: #a8660f;
+  --color-num-ink: #6e430b;
+  --color-num-soft: #efe6d6;
+  --color-star: #4f4ac4;
+  --color-star-ink: #33309a;
+  --color-star-soft: #e5e4f1;
+  --color-hand: #2f7356;
+  --color-hand-ink: #1f4f3b;
+  --color-hand-soft: #dfe9e2;
+  --color-story: #a83d60;
+  --color-story-ink: #7a2944;
+  --color-story-soft: #f0e1e5;
+  --color-ask: #2a6aa3;
+  --color-ask-ink: #1b4a73;
+  --color-ask-soft: #e1e9f0;
+
+  --color-good: #2b7048;
+  --color-good-soft: #e1ece4;
+  --color-care: #9a4416;
+  --color-care-soft: #f3e4d8;
+  --color-bad: #b42323;
+  --color-bad-soft: #f6e0dd;
 }
 
 @theme inline {
   --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-heading), var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-serif), Georgia, "Times New Roman", serif;
+  --font-mono: var(--font-label), ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
 
-/* Text size preference (Settings → Text size, or the "Aa" button). Everything is in rem, so it all scales. */
+/* Reader text size (the "Aa" switch). Everything is in rem, so it all scales. */
 html {
   font-size: 100%;
   -webkit-text-size-adjust: 100%;
@@ -66,13 +74,18 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/* Headings are set in the serif, which has a single weight: never fake-bold it. */
 h1,
 h2,
 h3,
-h4 {
+.font-display {
   font-family: var(--font-display);
-  line-height: 1.2;
-  letter-spacing: -0.01em;
+  font-weight: 400;
+  letter-spacing: -0.012em;
+  line-height: 1.08;
+  text-wrap: balance;
+}
+h4 {
   text-wrap: balance;
 }
 
@@ -81,19 +94,30 @@ li {
   text-wrap: pretty;
 }
 
+/* Small technical labels: "01 — NUMEROLOGY", degrees, dates. */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  line-height: 1.4;
+}
+
 ::selection {
-  background: #fde68a;
+  background: #e9dcc0;
   color: var(--color-ink);
 }
 
-/* One clear, thick focus ring everywhere, for keyboard users. */
 :focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 3px;
   border-radius: 0.5rem;
 }
+.night :focus-visible {
+  outline-color: #9db8ff;
+}
 
-/* Native <details> used for "How we worked this out" and FAQs. */
 details > summary {
   list-style: none;
   cursor: pointer;
@@ -102,10 +126,16 @@ details > summary::-webkit-details-marker {
   display: none;
 }
 details[open] > summary .chevron {
-  transform: rotate(180deg);
+  transform: rotate(45deg);
 }
 
-/* Bottom navigation sits above the phone's home indicator. */
+/* Night panels: deep ink with a whisper of film grain. */
+.night {
+  background-color: var(--color-night);
+  color: var(--color-moon);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.05 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
@@ -113,7 +143,7 @@ details[open] > summary .chevron {
 @keyframes rise-in {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -121,13 +151,47 @@ details[open] > summary .chevron {
   }
 }
 .rise-in {
-  animation: rise-in 0.35s ease-out both;
+  animation: rise-in 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes slow-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.slow-spin {
+  animation: slow-spin 140s linear infinite;
+  transform-origin: center;
+  transform-box: fill-box;
+}
+.spin-reverse {
+  animation: slow-spin 200s linear infinite reverse;
+  transform-origin: center;
+  transform-box: fill-box;
+}
+.orbit-fast {
+  animation: slow-spin 6s linear infinite;
+  transform-origin: center;
+  transform-box: view-box;
+}
+
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+.twinkle {
+  animation: twinkle 4s ease-in-out infinite;
 }
 
 @keyframes pulse-dot {
   0%,
   100% {
-    opacity: 0.35;
+    opacity: 0.3;
   }
   50% {
     opacity: 1;
@@ -153,8 +217,10 @@ details[open] > summary .chevron {
   html {
     font-size: 90%;
   }
-  body {
-    background: #fff;
+  body,
+  .night {
+    background: #fff !important;
+    color: #000 !important;
   }
   .no-print,
   header,

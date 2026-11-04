@@ -4,7 +4,7 @@ import { useId, useState, type InputHTMLAttributes, type ReactNode, type SelectH
 import { ChevronDown, CircleAlert, Eye, EyeOff } from "lucide-react";
 
 export const INPUT_CLASS =
-  "w-full min-h-14 rounded-xl border-2 border-line-2 bg-surface px-4 text-lg text-ink placeholder:text-ink-3 transition-colors hover:border-ink-3 focus:border-ink focus:outline-none aria-[invalid=true]:border-bad";
+  "w-full min-h-14 rounded-2xl border-[1.5px] border-line-2 bg-surface px-5 text-lg text-ink placeholder:text-ink-3/80 transition-colors hover:border-ink-3 focus:border-ink focus:outline-none aria-[invalid=true]:border-bad";
 
 interface FieldProps {
   label: ReactNode;
@@ -23,7 +23,7 @@ export function Field({ label, hint, error, compact, children }: FieldProps) {
   const describedBy = [hintId, errorId].filter(Boolean).join(" ") || undefined;
   return (
     <div className="flex flex-col gap-2">
-      <label htmlFor={id} className={compact ? "text-base font-semibold text-ink-2" : "text-lg font-semibold text-ink"}>
+      <label htmlFor={id} className={compact ? "eyebrow text-ink-2" : "text-lg font-semibold text-ink"}>
         {label}
       </label>
       {hint && <p id={hintId} className="-mt-1 text-base text-ink-2">{hint}</p>}
@@ -71,7 +71,7 @@ export function PasswordField({ label, hint, error, className = "", ...rest }: T
           <button
             type="button"
             onClick={() => setShown((s) => !s)}
-            className="absolute right-2 top-1/2 flex min-h-11 -translate-y-1/2 items-center gap-1.5 rounded-lg px-3 text-base font-semibold text-ink-2 hover:bg-black/[0.05] hover:text-ink"
+            className="absolute right-2 top-1/2 flex min-h-11 -translate-y-1/2 items-center gap-1.5 rounded-full px-3.5 text-base font-semibold text-ink-2 hover:bg-black/[0.05] hover:text-ink"
             aria-label={shown ? "Hide password" : "Show password"}
           >
             {shown ? <EyeOff className="h-5 w-5" aria-hidden="true" /> : <Eye className="h-5 w-5" aria-hidden="true" />}

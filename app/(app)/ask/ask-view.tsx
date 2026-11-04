@@ -143,12 +143,12 @@ function Chat() {
         </Notice>
       )}
 
-      <section aria-label="Conversation" className="flex flex-col gap-6 rounded-3xl border border-line bg-surface p-4 sm:p-6" aria-live="polite">
+      <section aria-label="Conversation" className="flex flex-col gap-6 rounded-[1.75rem] border border-line bg-surface p-4 sm:p-6" aria-live="polite">
         {turns.length === 0 ? (
           <div className="flex flex-col gap-5">
             <div className="flex gap-3">
               <IconBadge icon={MessageCircle} tone="ask" size="sm" />
-              <div className="flex flex-col gap-2 rounded-3xl rounded-tl-md bg-ask-soft p-5">
+              <div className="flex flex-col gap-2 rounded-[1.75rem] rounded-tl-md bg-ask-soft p-5">
                 <p className="text-xl font-semibold">Hi {firstName(user.name)}! What would you like to know?</p>
                 <p className="text-lg">Ask in your own words. I answer only from your readings, and I show which reading each part comes from.</p>
               </div>
@@ -158,7 +158,7 @@ function Chat() {
               <div className="flex flex-wrap gap-2">
                 {SUGGESTIONS.map((s) => (
                   <button key={s} type="button" onClick={() => void ask(s)} disabled={sending || !hasReadings}
-                    className="min-h-12 rounded-full border-2 border-line-2 bg-surface px-4 text-left text-base font-semibold hover:border-ink disabled:opacity-50">
+                    className="min-h-12 rounded-full border-[1.5px] border-line-2 bg-surface px-4 text-left text-base font-semibold hover:border-ink disabled:opacity-50">
                     {s}
                   </button>
                 ))}
@@ -168,7 +168,7 @@ function Chat() {
         ) : (
           turns.map((turn, i) => turn.role === "user" ? (
             <div key={i} className="flex justify-end">
-              <p className="max-w-[85%] whitespace-pre-wrap rounded-3xl rounded-tr-md bg-ink px-5 py-3 text-lg text-white">{turn.content}</p>
+              <p className="max-w-[85%] whitespace-pre-wrap rounded-[1.75rem] rounded-tr-md bg-ink px-5 py-3 text-lg text-white">{turn.content}</p>
             </div>
           ) : (
             <Answer key={i} content={turn.content} payload={turn.payload} onAsk={(q) => void ask(q)} disabled={sending} />
@@ -177,7 +177,7 @@ function Chat() {
         {sending && (
           <div className="flex items-center gap-3" role="status">
             <IconBadge icon={MessageCircle} tone="ask" size="sm" />
-            <span className="flex items-center gap-2 rounded-3xl bg-ask-soft px-5 py-3 text-lg">
+            <span className="flex items-center gap-2 rounded-[1.75rem] bg-ask-soft px-5 py-3 text-lg">
               Thinking
               <span className="pulse-dot h-2 w-2 rounded-full bg-ask" />
               <span className="pulse-dot h-2 w-2 rounded-full bg-ask [animation-delay:0.2s]" />
@@ -188,7 +188,7 @@ function Chat() {
         <div ref={end} />
       </section>
 
-      <form onSubmit={submit} className="sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 flex flex-col gap-2 rounded-3xl border border-line bg-surface p-3 shadow-lg md:bottom-4">
+      <form onSubmit={submit} className="sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 flex flex-col gap-2 rounded-[1.75rem] border border-line bg-surface p-3 shadow-lg md:bottom-4">
         <label htmlFor="question" className="px-2 text-base font-semibold text-ink-2">Type your question</label>
         <div className="flex items-end gap-2">
           <textarea
@@ -200,7 +200,7 @@ function Chat() {
             onChange={(e) => setQuestion(e.target.value)}
             onKeyDown={onKeyDown}
             placeholder="e.g. What does my palm say about my career?"
-            className="min-h-14 flex-1 resize-none rounded-2xl border-2 border-line-2 bg-surface px-4 py-3 text-lg text-ink placeholder:text-ink-3 focus:border-ink focus:outline-none"
+            className="min-h-14 flex-1 resize-none rounded-2xl border-[1.5px] border-line-2 bg-surface px-4 py-3 text-lg text-ink placeholder:text-ink-3 focus:border-ink focus:outline-none"
           />
           <Button type="submit" size="lg" disabled={!question.trim() || sending} icon={<SendHorizontal className="h-5 w-5" aria-hidden="true" />}>
             Ask
@@ -241,7 +241,7 @@ function Answer({ content, payload, onAsk, disabled }: { content: string; payloa
   return (
     <div className="flex gap-3">
       <IconBadge icon={MessageCircle} tone="ask" size="sm" />
-      <div className="flex min-w-0 flex-1 flex-col gap-4 rounded-3xl rounded-tl-md bg-ask-soft p-5">
+      <div className="flex min-w-0 flex-1 flex-col gap-4 rounded-[1.75rem] rounded-tl-md bg-ask-soft p-5">
         {paragraphs.map((p, i) => <p key={i} className="text-lg leading-relaxed">{p}</p>)}
         <ReadAloud text={content} className="self-start" />
         {payload && payload.key_points.length > 0 && (
@@ -275,7 +275,7 @@ function Answer({ content, payload, onAsk, disabled }: { content: string; payloa
             <div className="flex flex-wrap gap-2">
               {payload.follow_up_questions.map((q) => (
                 <button key={q} type="button" disabled={disabled} onClick={() => onAsk(q)}
-                  className="min-h-12 rounded-full border-2 border-ask/30 bg-surface px-4 text-left text-base font-semibold hover:border-ask disabled:opacity-50">
+                  className="min-h-12 rounded-full border-[1.5px] border-ask/30 bg-surface px-4 text-left text-base font-semibold hover:border-ask disabled:opacity-50">
                   {q}
                 </button>
               ))}
