@@ -6,7 +6,7 @@ import logging
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.core.llm import generate_json, llm_available, normalize_text
+from app.core.llm import generate_json, llm_available, normalize_text, with_plain_style
 from app.db.models import ChatMessageRecord, ChatSession, CombinedReport
 from app.modules.integration.claims import (
     THEMES, build_claim_pool, contributions, load_sources, select_relevant, themes_for_text, valid_ids,
@@ -31,8 +31,8 @@ def _availability(sources: dict) -> dict:
 
 
 CHAT_PROMPT = """
-You are AstroVerse Guide, a warm, articulate assistant that answers questions by integrating three
-traditional systems: Numerology, Vedic Astrology and Palmistry. You receive the user's question,
+You are AstroVerse Guide, a kind helper who answers questions in simple words, using three
+readings: numbers (numerology), stars (Indian astrology) and hand (palm reading). You receive the user's question,
 recent conversation, and for each system a list of claims already derived from THIS user's own
 readings (each with an id, the claim, and the `basis` - the calculation that produced it).
 
@@ -43,14 +43,14 @@ RULES
 3. Compare systems explicitly: where they point the same way, call it agreement; where they partly
    overlap, partial overlap; where they speak to different aspects, difference; where they pull in
    opposite directions, contradiction. Semantic similarity alone is not agreement.
-4. Frame everything as traditional interpretation, not scientific fact. No medical, legal or
-   financial advice. Be kind and grounded; avoid fatalism.
+4. This is what old traditions say, not science. No medical, legal or financial advice.
+   Be kind and calm; never frightening.
 5. Do not show claim ids, snake_case or field names inside prose text.
 6. If a system has no reading (marked unavailable), do not speculate about it.
 
 Return ONE JSON object:
 {
-  "answer": "A direct, well-written answer in 2-4 short paragraphs separated by \\n\\n.",
+  "answer": "A direct, simple answer in 2-4 short paragraphs separated by \\n\\n.",
   "key_points": [{"text": "one-sentence insight", "claim_ids": ["N:...", "A:..."]}],
   "module_insights": [{"module": "numerology|astrology|palmistry",
                        "summary": "what this system contributes to the answer, 1-2 sentences",
@@ -103,7 +103,7 @@ def chat(db: Session, *, owner_key: str | None, message: str, session_id: int | 
                    "claims": {}, "generation_status": "llm_not_configured"}
     else:
         try:
-            parsed = generate_json(CHAT_PROMPT, {
+            parsed = generate_json(with_plain_style(CHAT_PROMPT), {
                 "question": message, "recent_conversation": history,
                 "question_themes": [THEMES[t] for t in themes] or ["general"],
                 "available_systems": available, "claims": _claims_payload(selected),
@@ -164,15 +164,15 @@ RULES
    agreement (same direction), partial_overlap, difference (different aspects), contradiction
    (opposite directions), or single_source (only one system speaks to it).
 3. Similar wording is not automatically agreement; consider each claim's meaning and basis.
-4. Frame everything as traditional interpretation. Do not show ids or snake_case in prose.
+4. This is what old traditions say, not science. Do not show ids or snake_case in prose.
 5. Address the reader directly as "you", never "the person"; do not invent a name or gender.
-6. Write for a reader who knows nothing about these systems: name which system says what, and
-   explain any technical term in plain words the first time (for example "your Moolank (birth-day number)").
+6. Write for a reader who knows nothing about these systems: say which reading says what (your
+   numbers, your stars, your hand) and use plain names only (for example "your birthday number").
 
 Return ONE JSON object:
 {
-  "headline": "8-12 word title for the integrated profile",
-  "overview": "5-7 sentence synthesis across the three systems, in plain language",
+  "headline": "3-8 plain words for the whole picture",
+  "overview": "4-6 short, simple sentences across the three readings",
   "themes": [{"theme": "<theme key>", "relation": "agreement|partial_overlap|difference|contradiction|single_source",
               "synthesis": "3-5 sentences: what each system says on this theme and how they fit together",
               "claim_ids": ["..."]}],
@@ -192,7 +192,7 @@ RULES
 1. facts: cover EVERY fact key that any claim speaks to (including lines "not clearly visible",
    which have claims about their absence). Write "meaning": 2-4 warm, plain sentences on what that
    fact suggests about the person in its tradition, citing claim ids. Skip only facts no claim supports.
-2. Explain any jargon you use in brackets the first time, e.g. "antardasha (sub-period)".
+2. Use plain names only, never jargon (say "a shorter time inside it", not "antardasha").
 3. system_summaries: 3-4 sentences per system that has facts, on what it says about the person overall.
 4. timeline: 3-6 entries on what the traditions suggest for the current and coming periods, built
    from the dasha dates, Personal Year and transits in the facts. Each has a period, a short title,
@@ -232,11 +232,11 @@ def _explain_readings(pool: dict[str, list[dict]], facts: dict[str, list[dict]])
     """Ask the model what each profile fact means for this person; drop anything not grounded in claims."""
     chosen = {m: sorted(cs, key=lambda c: c["weight"], reverse=True)[:EXPLAIN_CLAIM_LIMITS[m]] for m, cs in pool.items()}
     allowed = {c["claim_id"] for cs in chosen.values() for c in cs}
-    parsed = generate_json(EXPLAIN_PROMPT, {
+    parsed = generate_json(with_plain_style(EXPLAIN_PROMPT), {
         m: {"facts": [{"key": f["key"], "label": f["label"], "value": f["value"]} for f in facts[m]],
             "claims": {c["claim_id"]: f"{c['claim'][:140]} (basis: {str(c['basis'])[:60]})" for c in chosen[m]}}
         for m in pool if facts[m]
-    }, max_tokens=3200, temperature=0.4, cache_namespace="integration.explain.v3")
+    }, max_tokens=3200, temperature=0.4, cache_namespace="integration.explain.v4")
 
     fact_keys = {f["key"] for fs in facts.values() for f in fs}
     meanings = {}
@@ -291,11 +291,11 @@ def combined_report(db: Session, *, owner_key: str | None, ids: dict[str, int | 
         try:
             # Each claim is sent once and themes reference it by id, keeping the request inside
             # small tokens-per-minute budgets.
-            parsed = generate_json(REPORT_PROMPT, {
+            parsed = generate_json(with_plain_style(REPORT_PROMPT), {
                 "available_systems": available,
                 "claims": {cid: f"[{by_id[cid]['module']}] {by_id[cid]['claim'][:160]} (basis: {str(by_id[cid]['basis'])[:70]})" for cid in sorted(allowed)},
                 "themes": {t: {"label": THEMES[t], "claim_ids": {m: [c["claim_id"] for c in cs] for m, cs in b.items()}} for t, b in per_theme.items()},
-            }, max_tokens=3200, temperature=0.4, cache_namespace="integration.report.v4")
+            }, max_tokens=3200, temperature=0.4, cache_namespace="integration.report.v5")
             headline = normalize_text(str(parsed.get("headline") or ""))
             overview = normalize_text(str(parsed.get("overview") or ""))
             for item in parsed.get("themes", []) if isinstance(parsed.get("themes"), list) else []:
@@ -333,11 +333,10 @@ def combined_report(db: Session, *, owner_key: str | None, ids: dict[str, int | 
         "source_ids": {m: (sources[m][0] if sources.get(m) else None) for m in MODULE_LABELS},
         "claims": {cid: {k: by_id[cid][k] for k in ("module", "trait", "claim", "basis", "weight", "source_name")} for cid in dict.fromkeys(all_cited + [i for x in agreements + tensions for i in x["claim_ids"]] + sorted(explained_ids)) if cid in by_id},
         "method": (
-            "Each system's saved reading is converted into claims tagged with shared themes. For each theme the "
-            "model classifies whether the systems agree, partly overlap, differ or contradict, citing claims. A "
-            "system's contribution is the summed weight of its cited claims divided by all cited weight; weights "
-            "reflect evidence strength (for example component-specific numerology 1.0, general 0.55; dasha 1.0; "
-            "well-measured palm lines higher than photo-estimated mounts)."
+            "We turn each of your saved readings into short lines from the books, and sort them by topic, like love or work. "
+            "For each topic, the writer checks if your readings agree, partly agree, say different things, or disagree, and "
+            "names the lines it used. How much each reading added is worked out from the lines it gave. Lines that fit you more "
+            "closely count for more, and the soft pads of the palm count for less, because they are hard to see in a photo."
         ),
         "generation_status": status,
     }

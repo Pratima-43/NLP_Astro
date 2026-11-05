@@ -135,6 +135,31 @@ def _cache_put(key: str, namespace: str, value: dict[str, Any]) -> None:
         logger.warning("LLM cache write failed", exc_info=True)
 
 
+# Every reading is written for people who know nothing about these traditions, young or old.
+PLAIN_STYLE = """
+HOW TO WRITE (this matters most)
+Write for a 10-year-old and a 70-year-old who know nothing about numbers, stars or palm reading.
+- Short sentences: about 12 words or fewer. One idea per sentence.
+- Everyday words only. Say "you may worry", not "a tendency toward anxiety"; "money", not
+  "material prosperity"; "work", not "career trajectory"; "love", not "the affectionate disposition".
+- Talk straight to the reader as "you", like a kind, calm friend. Be direct and warm.
+- No jargon. Never use these words in the text: Moolank, Bhagyank, Namank, Personal Year, lagna,
+  ascendant, rashi, nakshatra, pada, dasha, mahadasha, antardasha, yoga, dosha, karaka, house lord,
+  kendra, trikona, exalted, debilitated, dignity, sidereal, transit, mount, Jyotish, Vedic, Cheiro,
+  polarity, evidence, claim. Use the plain names instead: birthday number, life number, name number,
+  this year's number, rising sign, your sign (the Moon sign), birth star, Saturn's time (or the time
+  you are in now), a shorter time inside it, a special mix in your chart, the soft pad under a finger.
+- No flowery or poetic language. No phrases like "cosmic tapestry", "celestial dance" or "destiny unfolds".
+- Do not keep saying "traditionally" or "in this tradition". At most once, say "the old books say".
+- Headlines: 3-7 plain words a child understands, for example "Brave, kind and full of ideas".
+""".strip()
+
+
+def with_plain_style(prompt: str) -> str:
+    """Add the shared plain-language rules to a system prompt."""
+    return f"{prompt}\n\n{PLAIN_STYLE}"
+
+
 def generate_json(
     system_prompt: str,
     user_payload: Any,

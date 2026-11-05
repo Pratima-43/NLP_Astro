@@ -52,14 +52,15 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   try {
     response = await fetch(`${API_BASE_URL}/api/v1${path}`, { ...init, headers });
   } catch {
-    throw new ApiError(`Cannot reach the AstroVerse API at ${API_BASE_URL}. Start the FastAPI server (uvicorn app.main:app --port 8000).`, 0);
+    const hint = process.env.NODE_ENV === "development" ? ` (Is the API running at ${API_BASE_URL}? Start it with: uvicorn app.main:app --port 8000)` : "";
+    throw new ApiError(`We couldn't reach AstroVerse. Please check your internet connection and try again.${hint}`, 0);
   }
   const body = await response.json().catch(() => null);
   if (!response.ok) {
     const detail = body?.detail;
     const message = typeof detail === "string"
       ? detail
-      : Array.isArray(detail) && detail[0]?.msg ? String(detail[0].msg).replace(/^Value error, /, "") : "The server could not complete this request.";
+      : Array.isArray(detail) && detail[0]?.msg ? String(detail[0].msg).replace(/^Value error, /, "") : "Something went wrong on our side. Please try again in a moment.";
     if (response.status === 401 && token && typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent(UNAUTHORIZED_EVENT, { detail: message }));
     }

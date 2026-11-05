@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.llm import clean_cited_items, generate_json, llm_available, normalize_text
+from app.core.llm import clean_cited_items, generate_json, llm_available, normalize_text, with_plain_style
 from app.db.models import AstrologyChart, KnowledgeClaim
 from app.modules.vedic_astrology.chart import BirthData, calculate_chart
 from app.modules.vedic_astrology.constants import CONVENTIONS, DOMAINS
@@ -69,25 +69,26 @@ def collect_evidence(db: Session, chart: dict, time_unknown: bool) -> list[dict]
     planets = chart["planets"]
     if not time_unknown:
         lagna = chart["lagna"]
-        add(_claims(db, f"sign:{lagna['sign'].lower()}"), f"Ascendant (lagna) in {lagna['sign']} at {lagna['degree_label']}", "lagna", 1.0)
+        add(_claims(db, f"sign:{lagna['sign'].lower()}"), f"your rising sign is {lagna['sign']}", "lagna", 1.0)
     moon = planets["Moon"]
-    add(_claims(db, f"sign:{moon['sign'].lower()}"), f"Moon sign (rashi) {moon['sign']}", "moon_sign", 0.9)
+    add(_claims(db, f"sign:{moon['sign'].lower()}"), f"your sign (where the Moon was) is {moon['sign']}", "moon_sign", 0.9)
     nak = moon["nakshatra"]
-    add(_claims(db, f"nakshatra:{nak['name'].lower().replace(' ', '_')}"), f"Moon in {nak['name']} nakshatra, pada {nak['pada']} (lord {nak['lord']})", "nakshatra", 0.8)
+    add(_claims(db, f"nakshatra:{nak['name'].lower().replace(' ', '_')}"), f"your birth star is {nak['name']}", "nakshatra", 0.8)
 
     for name, p in planets.items():
-        place = f"{name} in {p['sign']}" + ("" if time_unknown else f", house {p['house']}")
+        place = f"{name} was in {p['sign']}" + ("" if time_unknown else f", box {p['house']} of your chart")
         if p["strength"] >= 2:
-            add(_claims(db, f"planet:{name.lower()}", "strong"), f"{place}; strength score {p['strength']:+.1f}", f"planet_strong:{name}", 0.8)
+            add(_claims(db, f"planet:{name.lower()}", "strong"), f"{place}, where it is strong", f"planet_strong:{name}", 0.8)
         elif p["strength"] <= -1:
-            add(_claims(db, f"planet:{name.lower()}", "weak"), f"{place}; strength score {p['strength']:+.1f}", f"planet_weak:{name}", 0.8)
+            add(_claims(db, f"planet:{name.lower()}", "weak"), f"{place}, where it is weak", f"planet_weak:{name}", 0.8)
         if p["dignity"] in ("exalted", "debilitated", "own_sign", "moolatrikona"):
-            add(_claims(db, "dignity", p["dignity"]), f"{name} is {p['dignity'].replace('_', ' ')} in {p['sign']}", f"dignity:{name}", 0.6)
+            how = {"exalted": "at its very best", "debilitated": "weak", "own_sign": "at home", "moolatrikona": "very strong"}[p["dignity"]]
+            add(_claims(db, "dignity", p["dignity"]), f"{name} is {how} in {p['sign']}", f"dignity:{name}", 0.6)
 
     for yoga in chart["yogas"]:
         if time_unknown and yoga["key"] not in ("gaja_kesari", "budha_aditya", "chandra_mangala", "sunapha", "anapha", "durudhara", "kemadruma"):
             continue  # lagna-dependent yogas are unreliable without a birth time
-        add(_claims(db, f"yoga:{yoga['key']}"), f"{yoga['name']}: {yoga['condition']}", f"yoga:{yoga['key']}", 0.9)
+        add(_claims(db, f"yoga:{yoga['key']}"), f"your chart has {yoga['name']}", f"yoga:{yoga['key']}", 0.9)
 
     if not time_unknown:
         houses_to_domains: dict[int, list[str]] = {}
@@ -96,22 +97,21 @@ def collect_evidence(db: Session, chart: dict, time_unknown: bool) -> list[dict]
                 houses_to_domains.setdefault(house, []).append(key)
         for house, keys in sorted(houses_to_domains.items()):
             info = chart["houses"][house - 1]
-            outlooks = "; ".join(f"{chart['domains'][k]['label']} outlook {chart['domains'][k]['score']}/100 ({chart['domains'][k]['assessment']})" for k in keys)
-            add(_claims(db, f"house:{house}"), f"House {house} in {info['sign']}, lord {info['lord']}; {outlooks}", f"domain:{keys[0]}", 0.5)
+            add(_claims(db, f"house:{house}"), f"box {house} of your chart is in {info['sign']}", f"domain:{keys[0]}", 0.5)
 
     dasha = chart["dasha"]
     if dasha.get("current_period"):
         period = dasha["current_period"]
-        add(_claims(db, f"dasha:{period['mahadasha'].lower()}"), f"Current Mahadasha of {period['mahadasha']} (until {period['mahadasha_end']})", "dasha:maha", 1.0)
+        add(_claims(db, f"dasha:{period['mahadasha'].lower()}"), f"it is {period['mahadasha']}'s turn in your life until {period['mahadasha_end'][:4]}", "dasha:maha", 1.0)
         if period["antardasha"] != period["mahadasha"]:
             add(_claims(db, f"dasha:{period['antardasha'].lower()}"),
-                f"Current Antardasha of {period['antardasha']} ({period['antardasha_start']} to {period['antardasha_end']})", "dasha:antar", 0.8)
+                f"a shorter {period['antardasha']} time runs from {period['antardasha_start'][:4]} to {period['antardasha_end'][:4]}", "dasha:antar", 0.8)
 
     transits = chart["transits"]
     if transits["sade_sati"]["active"]:
-        add(_claims(db, "transit:sade_sati", "active"), f"Saturn transiting {transits['saturn']['sign']}, house {transits['saturn']['house_from_moon']} from the Moon ({transits['sade_sati']['phase']})", "transit:sade_sati", 0.9)
+        add(_claims(db, "transit:sade_sati", "active"), f"Saturn is passing over your sign right now, in {transits['saturn']['sign']} (Sade Sati)", "transit:sade_sati", 0.9)
     if transits["jupiter"]["house_from_moon"] in (2, 5, 7, 9, 11):
-        add(_claims(db, "transit:jupiter", "favourable"), f"Jupiter transiting {transits['jupiter']['sign']}, house {transits['jupiter']['house_from_moon']} from the Moon", "transit:jupiter", 0.7)
+        add(_claims(db, "transit:jupiter", "favourable"), f"Jupiter is in {transits['jupiter']['sign']} right now, a good spot for you", "transit:jupiter", 0.7)
 
     # De-duplicate identical record+basis pairs while keeping the first evidence ID.
     seen, unique = set(), []
@@ -125,8 +125,8 @@ def collect_evidence(db: Session, chart: dict, time_unknown: bool) -> list[dict]
 
 # ── Interpretation ────────────────────────────────────────────────────────────
 SYSTEM_PROMPT = """
-You are the writer of a premium, beautifully written Vedic (Jyotish) astrology report. You are
-strictly grounded: the evidence list is the ONLY permitted source of meaning.
+You write an Indian astrology reading in simple, warm, everyday English. You are strictly
+grounded: the evidence list is the ONLY permitted source of meaning.
 
 Each evidence item has: evidence_id, a traditional claim, and a `basis` stating which computed chart
 factor activated it (for example "Saturn debilitated in Aries"). Weight indicates importance.
@@ -135,8 +135,7 @@ RULES
 1. Do not invent placements, yogas, dates, traits or predictions. Use only the evidence and the
    chart_facts supplied. Dates may only come from the dasha/transit facts provided.
 2. Every section and prediction must cite evidence_ids that exist in the input.
-3. Frame everything as traditional Jyotish interpretation ("traditionally", "in Jyotish"), never as
-   scientific fact or certainty. Do not give advice or instructions of any kind (medical, legal,
+3. Frame everything as what the old books say, never as science or certainty. Do not give advice or instructions of any kind (medical, legal,
    financial or lifestyle); describe traditional tendencies only.
 4. When evidence conflicts (for example a strong and a weak indicator for the same area), say so
    and explain which carries more weight and why.
@@ -144,10 +143,11 @@ RULES
 6. If birth_time_unknown is true, do not discuss the ascendant or houses.
 
 WRITE
-- headline: an evocative 5-10 word title for the chart.
-- overview: 3-5 graceful sentences synthesising ascendant, Moon sign, nakshatra and key yogas.
+- headline: a plain 3-7 word title for the chart.
+- overview: 3-5 short, simple sentences about the reader's sign (Moon sign), rising sign, birth star
+  and any special mixes, using those plain names.
 - sections: for each of personality, career, relationships, finance, health, spirituality that has
-  evidence: {"key", "title" (a short evocative title), "text" (2-4 sentences), "evidence_ids"}.
+  evidence: {"key", "title" (a short plain title), "text" (2-4 sentences), "evidence_ids"}.
 - current_period: {"text": 2-3 sentences on the running dasha and transits, "evidence_ids"}.
 - predictions: 3-6 items: {"area", "text" (one clear, cautious traditional prediction),
   "timing" (a date range only from the supplied dasha/transit facts, else ""),
@@ -182,7 +182,7 @@ def interpret(chart: dict, evidence: list[dict], time_unknown: bool) -> dict:
         "chart_facts": facts,
         "evidence": [{k: e[k] for k in ("evidence_id", "trait", "claim", "polarity", "theme", "basis", "weight")} for e in evidence],
     }
-    parsed = generate_json(SYSTEM_PROMPT, payload, max_tokens=2600, temperature=0.4, cache_namespace="astrology.reading.v1")
+    parsed = generate_json(with_plain_style(SYSTEM_PROMPT), payload, max_tokens=2600, temperature=0.4, cache_namespace="astrology.reading.v2")
     allowed = {e["evidence_id"] for e in evidence}
 
     sections = []

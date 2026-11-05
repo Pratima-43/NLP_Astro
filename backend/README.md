@@ -64,7 +64,7 @@ throttled logins. Changing or resetting a password revokes every older token.
 - **Email delivery** needs `SMTP_HOST`/`SMTP_PORT`/`SMTP_USERNAME`/`SMTP_PASSWORD`/`SMTP_FROM`
   (e.g. Gmail with an app password). Without SMTP in development, the email text including the reset
   link is printed in the backend console.
-- **Settings → Account**: change password, delete account (removes the user and all their readings).
+- **Me page**: change password, delete account (removes the user and all their readings).
 - **Notification preferences** are stored on the user and control the in-app bell and security emails.
 
 Optional **Supabase Auth**: set `SUPABASE_URL` (backend) and `NEXT_PUBLIC_SUPABASE_URL` /
@@ -89,6 +89,7 @@ mailer only delivers to your project's team members, so configure custom SMTP in
 | POST | `/api/v1/palmistry/analyze` | multipart `image`, `hand` → lines, mounts, overlay + reading |
 | POST | `/api/v1/integration/chat` | Answer from all three readings with module contributions |
 | POST | `/api/v1/integration/report` | Theme-by-theme cross-system comparison |
+| GET | `/api/v1/integration/report/latest` | The last saved comparison (Premium) |
 | GET | `/api/v1/{numerology,astrology,palmistry}/latest`, `/api/v1/integration/status` | Saved readings |
 
 ## Method notes

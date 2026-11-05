@@ -7,7 +7,12 @@ validated here before anything reaches the client.
 import logging
 from typing import Any
 
-from app.core.llm import clean_cited_items, generate_json, normalize_text
+from app.core.llm import (
+    clean_cited_items,
+    generate_json,
+    normalize_text,
+    with_plain_style,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -75,14 +80,13 @@ def empty_component_result(status: str = "no_source_records") -> dict[str, Any]:
 
 
 COMPONENT_SYSTEM_PROMPT = """
-You are the editor of a premium traditional Vedic numerology report. You write warm, elegant,
-easy-to-read English, but you are strictly grounded in the supplied knowledge records.
+You write a numerology reading in simple, warm, everyday English. You are strictly grounded in
+the supplied knowledge records.
 
 STRICT GROUNDING RULES
 1. The knowledge_records are the ONLY permitted source of meaning. Do not invent traits,
    predictions, advice, events, causes, or facts.
-2. Never claim numerology is scientifically validated. Use framing such as "In this tradition..."
-   or "The source associates..." where natural.
+2. Never claim numerology is science. You may say "the old books say" once; do not repeat it.
 3. Every strength, challenge, theme and evidence note must cite record IDs that appear in the input.
 4. Respect each record's evidence_layer:
    - component_specific: belongs to this component; may be presented as such.
@@ -96,9 +100,9 @@ STRICT GROUNDING RULES
 8. Address the reader directly as "you". Do not invent a name or gender for the reader.
 
 WHAT TO WRITE
-- headline: an evocative 4-9 word title capturing the reading (for example
-  "The Steady Builder Guided by Saturn"). It must be supported by the records.
-- summary: 2-4 flowing sentences that a reader would enjoy, grounded in the records.
+- headline: a plain 3-7 word title (for example "Steady, patient and hard-working").
+  It must be supported by the records.
+- summary: 2-4 short, simple sentences, grounded in the records.
 - strengths / challenges / key_themes: concise items (one sentence each). Include every distinct,
   source-supported item. Use challenge records (negative polarity) for challenges.
   Each key_theme item has a short "title" (1-3 words) and a "text" sentence.
@@ -151,7 +155,7 @@ def generate_component_interpretation(
         "requested_context": context or "general",
         "knowledge_records": clean_records,
     }
-    parsed = generate_json(COMPONENT_SYSTEM_PROMPT, payload, max_tokens=1800, temperature=0.35, cache_namespace="numerology.component.v3")
+    parsed = generate_json(with_plain_style(COMPONENT_SYSTEM_PROMPT), payload, max_tokens=1800, temperature=0.35, cache_namespace="numerology.component.v4")
 
     allowed_ids = {record["record_id"] for record in clean_records}
     strengths = clean_cited_items(parsed.get("strengths"), allowed_ids)
@@ -198,7 +202,8 @@ report. You receive four already-calculated components, each with its source-bac
 RULES
 1. Use only the supplied claims; every item must cite record IDs from the input.
 2. Keep components distinct. A leadership claim from Moolank is not the same claim as a leadership
-   claim from Namank; when they point the same way, call it a "resonance" and name both components.
+   claim from Namank; when they point the same way, call it a "resonance" and name both numbers
+   by their plain names (birthday number, life number, name number, this year's number).
 3. Look for resonances deliberately: compare every pair of components (six pairs) and list each pair
    whose claims share a theme, even in different words (for example "creativity" and "artistic
    grace", or "duty" and "responsibility"). Components with the same number almost always resonate.
@@ -206,7 +211,7 @@ RULES
 4. A "tension" is where claims from different components pull in different directions (for example
    one favours independence and another cooperation). Do not invent tensions. A shared theme is a
    resonance, never a tension; do not list the same pair and theme in both.
-5. No scientific claims, no invented predictions or advice. Use "in this tradition" framing.
+5. No scientific claims, no invented predictions or advice.
 6. Do not expose record IDs, field names or snake_case in prose.
 7. Address the reader directly as "you"; do not invent a name or gender.
 
@@ -245,11 +250,11 @@ def generate_profile_synthesis(
         return {"generation_status": "no_source_records"}
 
     parsed = generate_json(
-        SYNTHESIS_SYSTEM_PROMPT,
+        with_plain_style(SYNTHESIS_SYSTEM_PROMPT),
         {"target_year": target_year, "components": compact},
         max_tokens=1400,
         temperature=0.4,
-        cache_namespace="numerology.synthesis.v3",
+        cache_namespace="numerology.synthesis.v4",
     )
     valid_components = set(components)
 

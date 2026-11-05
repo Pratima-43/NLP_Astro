@@ -1,36 +1,32 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import { AppProvider } from "@/context/AppContext";
+import type { Metadata, Viewport } from "next";
+import { Figtree, Geist_Mono, Instrument_Serif } from "next/font/google";
+import { Providers } from "@/components/providers/Providers";
+import { TEXT_SIZE_SCRIPT } from "@/lib/text-size";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+// Editorial serif for headings, a friendly highly legible sans for reading, and a mono for small labels.
+const serif = Instrument_Serif({ subsets: ["latin"], weight: "400", style: ["normal", "italic"], variable: "--font-serif", display: "swap" });
+const body = Figtree({ subsets: ["latin"], variable: "--font-body", display: "swap" });
+const label = Geist_Mono({ subsets: ["latin"], variable: "--font-label", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "AstroVerse — Discover Your Cosmic Blueprint",
+  title: { default: "AstroVerse · Your numbers, your stars, your hand", template: "%s · AstroVerse" },
   description:
-    "Premium AI-powered astrology, numerology, and palmistry platform. Get personalized insights from the convergence of ancient wisdom systems.",
+    "Numerology, Vedic astrology and palmistry explained in plain words. Get three readings, see where they agree, and ask questions about your own results.",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export const viewport: Viewport = {
+  themeColor: "#f2f0eb",
+};
+
+export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">
-        <AppProvider>{children}</AppProvider>
+    <html lang="en" className={`${serif.variable} ${body.variable} ${label.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: TEXT_SIZE_SCRIPT }} />
+      </head>
+      <body className="min-h-dvh antialiased">
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

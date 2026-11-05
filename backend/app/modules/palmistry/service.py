@@ -7,7 +7,7 @@ import logging
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.core.llm import generate_json, llm_available, normalize_text
+from app.core.llm import generate_json, llm_available, normalize_text, with_plain_style
 from app.db.models import KnowledgeClaim, PalmReading
 from app.modules.palmistry.vision import analyse, annotate, decode_image, detector_name
 
@@ -28,7 +28,7 @@ def derive_conditions(analysis: dict) -> list[dict]:
 
     def line_basics(key: str, line: dict, long_at: float, short_at: float) -> None:
         name = line["name"]
-        add(f"line:{key}", None, f"{name} detected", f"confidence {line['confidence']}", 0.6, f"{name} present")
+        add(f"line:{key}", None, f"{name} detected", f"confidence {line['confidence']}", 0.6, f"{name} found")
         length = line["length_palm_widths"]
         if length >= long_at:
             add(f"line:{key}", "long", f"length >= {long_at} palm widths", f"{length}", 0.8, f"Long {name.lower()}")
@@ -48,9 +48,9 @@ def derive_conditions(analysis: dict) -> list[dict]:
         line_basics("heart", heart, long_at=0.95, short_at=0.5)
         end_u = heart["end_uv"][0]
         index_u, middle_u = 0.0, uv[9][0] if uv else 0.33
-        nearest = min((abs(end_u - index_u), "ends_under_jupiter", "Jupiter (index finger)"),
-                      (abs(end_u - (index_u + middle_u) / 2), "ends_between_jupiter_saturn", "between index and middle fingers"),
-                      (abs(end_u - middle_u), "ends_under_saturn", "Saturn (middle finger)"))
+        nearest = min((abs(end_u - index_u), "ends_under_jupiter", "the index finger"),
+                      (abs(end_u - (index_u + middle_u) / 2), "ends_between_jupiter_saturn", "between the index and middle fingers"),
+                      (abs(end_u - middle_u), "ends_under_saturn", "the middle finger"))
         add("line:heart", nearest[1], "nearest finger-base anchor to the radial end of the heart line",
             f"end u={end_u} (index 0.00, middle {middle_u:.2f})", 0.9, f"Heart line ends toward {nearest[2]}")
         if head["detected"]:
@@ -88,19 +88,19 @@ def derive_conditions(analysis: dict) -> list[dict]:
         if sv >= 0.82 and 0.35 <= su <= 0.68:
             add("line:fate", "from_wrist", "fate line starts near the wrist (v >= 0.82) in the centre", f"start ({su}, {sv})", 0.9, "Fate line rises from the wrist")
         elif su > 0.62:
-            add("line:fate", "from_moon", "fate line starts on the ulnar side (u > 0.62)", f"start ({su}, {sv})", 0.9, "Fate line rises from the Mount of the Moon")
+            add("line:fate", "from_moon", "fate line starts on the ulnar side (u > 0.62)", f"start ({su}, {sv})", 0.9, "Fate line starts near the outer edge of the palm")
         elif sv < 0.7:
             add("line:fate", "from_life", "fate line starts mid-palm (v < 0.70)", f"start ({su}, {sv})", 0.8, "Fate line begins in mid-palm")
     else:
         add("line:fate", "absent", "no fate line passed the detection threshold", f"confidence {fate.get('confidence', 0)}", 0.4, "No clear fate line")
 
     if sun["detected"]:
-        add("line:sun", "present", "sun line passed the detection threshold", f"length {sun['length_palm_widths']}", 0.7, "Sun (Apollo) line present")
+        add("line:sun", "present", "sun line passed the detection threshold", f"length {sun['length_palm_widths']}", 0.7, "Sun line found")
 
     for key, mount in mounts.items():
         if mount["development"] in ("prominent", "flat"):
             add(f"mount:{key}", mount["development"], f"mount index {'>=' if mount['development'] == 'prominent' else '<='} threshold (0.7 x shading z - 0.3 x line-density z)",
-                f"index {mount['index']}", 0.4, f"{mount['name']} appears {mount['development']}")
+                f"index {mount['index']}", 0.4, f"{mount['name']} looks {'full' if mount['development'] == 'prominent' else 'flat'}")
 
     add(f"hand_shape:{geometry['element']}", None, "palm shape x finger length (see geometry rules)",
         f"palm {geometry['palm_shape']} ({geometry['palm_length_to_width']}), fingers {geometry['finger_length']} ({geometry['middle_finger_to_palm']})",
@@ -125,14 +125,14 @@ def collect_evidence(db: Session, conditions: list[dict]) -> list[dict]:
             evidence.append({
                 "evidence_id": f"P{len(evidence) + 1:02d}",
                 **{field: getattr(record, field) for field in CLAIM_FIELDS},
-                "basis": f"{cond['label']} ({cond['measured']})", "factor": cond["feature_key"], "weight": cond["weight"],
+                "basis": cond["label"][0].lower() + cond["label"][1:], "factor": cond["feature_key"], "weight": cond["weight"],
             })
     return evidence
 
 
 SYSTEM_PROMPT = """
-You are the writer of a premium palm-reading report in the tradition of Cheiro. You are strictly
-grounded: the evidence list is the ONLY permitted source of meaning.
+You write a palm reading in simple, warm, everyday English. You are strictly grounded: the
+evidence list is the ONLY permitted source of meaning.
 
 Each evidence item has an evidence_id, a traditional claim, and a `basis` naming the measured palm
 feature that activated it (for example "Sloping head line (drop 0.24)"). Weight reflects how reliably
@@ -141,17 +141,16 @@ the feature was measured from the photo; mount readings from a photo are the lea
 RULES
 1. Do not invent features, traits, events, dates or predictions. Use only the evidence.
 2. Every section and prediction must cite evidence_ids from the input.
-3. Frame everything as traditional palmistry ("in Cheiro's tradition", "traditionally read as"), never
-   as fact or certainty. Give no medical, lifespan or health diagnoses and no advice.
+3. Frame everything as what palm readers say, never as fact or certainty. Give no medical, lifespan or health diagnoses and no advice.
 4. Where evidence conflicts, say so and explain which carries more weight.
 5. Address the reader as "you". Never show evidence IDs, snake_case or field names in prose.
 
 WRITE
-- headline: an evocative 5-10 word title for the hand.
-- overview: 3-4 graceful sentences synthesising the hand shape and principal lines.
+- headline: a plain 3-7 word title for the hand.
+- overview: 3-4 short, simple sentences about the hand shape and the main lines.
 - sections: for each of personality, relationships, career, education (mind), creativity, health
   (vitality, never diagnosis) that has evidence: {"key", "title", "text" (2-3 sentences), "evidence_ids"}.
-- predictions: 3-5 items {"area", "text" (one cautious traditional tendency), "reasoning" (which
+- predictions: 3-5 items {"area", "text" (one gentle, simple sentence), "reasoning" (which
   measured features lead to it and why), "confidence" ("high" if several well-measured features agree,
   "medium" for one clear feature, "low" for mount-only or conflicting evidence), "evidence_ids"}.
 
@@ -163,7 +162,7 @@ def interpret(evidence: list[dict]) -> dict:
     if not evidence:
         return {"generation_status": "no_source_records"}
     payload = {"evidence": [{k: e[k] for k in ("evidence_id", "trait", "claim", "polarity", "theme", "basis", "weight")} for e in evidence]}
-    parsed = generate_json(SYSTEM_PROMPT, payload, max_tokens=2200, temperature=0.2, cache_namespace="palmistry.reading.v2")
+    parsed = generate_json(with_plain_style(SYSTEM_PROMPT), payload, max_tokens=2200, temperature=0.2, cache_namespace="palmistry.reading.v3")
     allowed = {e["evidence_id"] for e in evidence}
 
     def ids(item: dict) -> list[str]:

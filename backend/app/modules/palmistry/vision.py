@@ -590,7 +590,7 @@ def analyse(bgr: np.ndarray, hand: str) -> dict:
         raise PalmImageError("This looks like the back of the hand. Photograph the palm side, fingers together and pointing up.")
     warnings = []
     if pose["handedness"] in ("left", "right") and pose["handedness"] != hand:
-        warnings.append(f"The photo looks like a {pose['handedness']} hand but '{hand}' was selected (a mirrored selfie can cause this). The reading uses your selection.")
+        warnings.append(f"This looks like your {pose['handedness']} hand, but you picked your {hand} hand. A selfie camera can flip photos. We used the hand you picked.")
     frame = build_frame(points)
     warped = cv2.warpAffine(bgr, frame.affine, (frame.width, frame.height), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE)
     mask = _palm_mask(frame, warped)
