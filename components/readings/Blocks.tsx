@@ -6,6 +6,7 @@ import { ReadAloud } from "@/components/ui/ReadAloud";
 import { buttonClass } from "@/components/ui/Button";
 import { Notice } from "@/components/ui/Notice";
 import { CONFIDENCE_WORDS, generationMessage } from "@/lib/readings";
+import { hasPlainVersion, plainClaim } from "@/lib/plain";
 import { TONE, nextStep, type StepKey, type Tone } from "@/lib/journey";
 import type { Prediction, ReadingSection } from "@/types/readings";
 
@@ -37,20 +38,19 @@ export function InShort({ headline, text, tone, label = "In short" }: { headline
 }
 
 const LIST_STYLE = {
-  good: { icon: Plus, label: "In your favour", color: "text-good" },
-  care: { icon: Minus, label: "Watch out", color: "text-care" },
-  other: { icon: BookOpen, label: "Also noted", color: "text-ink-3" },
+  good: { icon: Plus, color: "text-good" },
+  care: { icon: Minus, color: "text-care" },
+  other: { icon: BookOpen, color: "text-ink-3" },
 } as const;
 
-/** A list of short sentences under a hairline: things to lean into, to go easy on, or other notes. */
+/** A list of short sentences under a hairline: your good side, things to watch out for, or other notes. */
 export function PointList({ title, kind, items }: { title: string; kind: keyof typeof LIST_STYLE; items: string[] }) {
   if (!items.length) return null;
-  const { icon: Icon, label, color } = LIST_STYLE[kind];
+  const { icon: Icon, color } = LIST_STYLE[kind];
   return (
     <section className="flex flex-col">
-      <div className="flex items-baseline justify-between gap-3 border-b border-ink/80 pb-3">
+      <div className="border-b border-ink/80 pb-3">
         <h3 className="text-3xl">{title}</h3>
-        <p className={`eyebrow ${color}`}>{label}</p>
       </div>
       <ul>
         {items.map((item) => (
@@ -64,7 +64,7 @@ export function PointList({ title, kind, items }: { title: string; kind: keyof t
   );
 }
 
-/** "What’s ahead": a timeline of cautious traditional pointers. */
+/** "What’s coming up": gentle pointers about the time ahead. */
 export function PredictionList({ predictions, tone }: { predictions: Prediction[]; tone: Tone }) {
   if (!predictions.length) return null;
   return (
@@ -74,7 +74,7 @@ export function PredictionList({ predictions, tone }: { predictions: Prediction[
         return (
           <li key={i} className="grid gap-3 border-b border-line py-7 md:grid-cols-[14rem_1fr] md:gap-10">
             <div className="flex flex-col gap-2">
-              <p className={`eyebrow ${TONE[tone].text}`}>{p.area || "Life"}</p>
+              <p className={`eyebrow capitalize ${TONE[tone].text}`}>{TOPIC_WORDS[p.area] ?? (p.area || "Life")}</p>
               {p.timing && <p className="font-display text-2xl leading-tight">{p.timing}</p>}
             </div>
             <div className="flex flex-col gap-3">
@@ -91,7 +91,26 @@ export function PredictionList({ predictions, tone }: { predictions: Prediction[
   );
 }
 
-/** Reading sections (personality, career, love…) as editorial columns. */
+/** Everyday names for the topics a reading can cover. */
+const TOPIC_WORDS: Record<string, string> = {
+  personality: "Who you are",
+  career: "Work",
+  relationships: "Love and people",
+  love: "Love",
+  health: "Health",
+  wealth: "Money",
+  finance: "Money",
+  money: "Money",
+  family: "Family",
+  spirituality: "Inner life",
+  education: "Learning",
+  timing: "What’s coming up",
+  strengths: "Your good side",
+  challenges: "Watch out for",
+  overview: "In short",
+};
+
+/** Reading sections (who you are, work, love…) as editorial columns. */
 export function TopicCards({ sections, icons, tone }: { sections: ReadingSection[]; icons: Record<string, typeof BookOpen>; tone: Tone }) {
   if (!sections.length) return null;
   return (
@@ -100,9 +119,9 @@ export function TopicCards({ sections, icons, tone }: { sections: ReadingSection
         const Icon = icons[s.key] ?? BookOpen;
         return (
           <article key={`${s.key}-${s.title}`} className="flex flex-col gap-3 border-b border-line py-8">
-            <p className={`eyebrow flex items-center gap-2 ${TONE[tone].text}`}>
+            <p className={`eyebrow flex items-center gap-2 capitalize ${TONE[tone].text}`}>
               <Icon className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" />
-              {s.key || "Reading"}
+              {TOPIC_WORDS[s.key] ?? (s.key ? s.key.replace(/_/g, " ") : "Reading")}
             </p>
             <h3 className="text-3xl">{s.title}</h3>
             <p className="text-lg leading-relaxed text-ink-2">{s.text}</p>
@@ -113,15 +132,18 @@ export function TopicCards({ sections, icons, tone }: { sections: ReadingSection
   );
 }
 
-/** One traditional statement with where it comes from and why it applies to you. */
+/** One line from the books, in plain words, with why it fits you and which book it comes from. */
 export function SourceItem({ claim, source, reasons, extra }: { claim: string; source: string | null; reasons?: string[]; extra?: ReactNode }) {
   return (
     <li className="flex flex-col gap-2 border-b border-line py-5">
-      <p className="font-display text-2xl leading-snug">“{claim}”</p>
+      <p className="font-display text-2xl leading-snug">{plainClaim(claim)}</p>
       {reasons && reasons.length > 0 && (
-        <p className="text-base text-ink-2"><span className="eyebrow mr-2 text-ink">Why</span>{reasons.join("; ")}</p>
+        <p className="text-base text-ink-2"><span className="eyebrow mr-2 text-ink">Why it fits you:</span>{reasons.join("; ")}</p>
       )}
-      {source && <p className="text-base text-ink-3"><span className="eyebrow mr-2">Source</span>{source}</p>}
+      {hasPlainVersion(claim) && (
+        <p className="text-base text-ink-3"><span className="eyebrow mr-2">The book says:</span>“{claim.trim()}”</p>
+      )}
+      {source && <p className="text-base text-ink-3"><span className="eyebrow mr-2">From:</span>{source}</p>}
       {extra}
     </li>
   );
@@ -135,7 +157,7 @@ export function GenerationNote({ status, onRetry }: { status: string | undefined
       tone={status === "generation_failed" ? "warning" : "info"}
       title={message.title}
       action={onRetry && status === "generation_failed" ? (
-        <button type="button" onClick={onRetry} className={buttonClass("secondary", "md")}>Try the written summary again</button>
+        <button type="button" onClick={onRetry} className={buttonClass("secondary", "md")}>Try the summary again</button>
       ) : undefined}
     >
       {message.text}
@@ -148,7 +170,7 @@ export function GoodToKnow({ text }: { text?: string }) {
   return (
     <aside className="grid gap-2 border-t border-line pt-6 text-base text-ink-3 md:grid-cols-[10rem_1fr] md:gap-10">
       <p className="eyebrow">Good to know</p>
-      <p>{text ?? "This is a traditional reading, for reflection and fun. It is not science, and it is not advice about health, money or the law."}</p>
+      <p>{text ?? "This reading comes from old traditions. Enjoy it and use it to think about your life. It is not science. It is not advice about health, money or the law."}</p>
     </aside>
   );
 }
@@ -163,7 +185,7 @@ export function NextStepCard({ after, isPremium }: { after: StepKey; isPremium: 
       <Starfield count={70} seed={13} className="absolute inset-0 h-full w-full opacity-70" />
       <div className="relative flex flex-col gap-8 p-6 sm:p-10 md:flex-row md:items-end md:justify-between">
         <div className="flex flex-col gap-3">
-          <p className="eyebrow text-moon-2">Next on your path</p>
+          <p className="eyebrow text-moon-2">Next step</p>
           <h2 className="text-5xl sm:text-6xl">{next.title}</h2>
           <p className="max-w-xl text-xl text-moon-2">{next.what}</p>
         </div>

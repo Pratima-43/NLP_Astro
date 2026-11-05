@@ -96,11 +96,10 @@ li {
 
 /* Small technical labels: "01 — NUMEROLOGY", degrees, dates. */
 .eyebrow {
-  font-family: var(--font-mono);
-  font-size: 0.8125rem;
-  font-weight: 500;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
   line-height: 1.4;
 }
 

@@ -11,53 +11,62 @@ from typing import Any
 
 CONCEPTS: dict[str, str] = {
     # Numerology
-    "moolank": "Your Moolank (psychic number) comes from the day of the month you were born, reduced to a single digit. "
-               "It describes your instinctive, inner nature: how you think, react and what drives you when nobody is watching.",
-    "bhagyank": "Your Bhagyank (destiny number) adds every digit of your full date of birth. It is read as the wider direction "
-                "of your life: the lessons, opportunities and kinds of work that keep returning to you over the years.",
-    "namank": "Your Namank (name number) turns each letter of your name into a number with the Chaldean table and adds them up. "
-              "It describes how other people experience you: your public image and the impression your name carries.",
-    "personal_year": "Your Personal Year number combines your birth day and month with the current year, so it changes every "
-                     "birthday cycle. It sets the theme of one year, which makes it a short-term forecast rather than a fixed trait.",
+    "moolank": "Your birthday number (Moolank) comes from the day of the month you were born, added up to one digit. "
+               "It shows who you are inside: how you think, how you react and what drives you.",
+    "bhagyank": "Your life number (Bhagyank) adds up every digit of your full birth date. "
+                "It shows where your life is going: the lessons and chances that keep coming back to you.",
+    "namank": "Your name number (Namank) turns each letter of your name into a number and adds them up. "
+              "It shows how other people see you.",
+    "personal_year": "This year's number (Personal Year) mixes your birthday with the current year, so it changes every year. "
+                     "It shows what this one year is about for you.",
     # Vedic astrology
-    "lagna": "Your Lagna (ascendant) is the zodiac sign rising on the eastern horizon at the exact minute and place you were born. "
-             "It is the most personal point of a Vedic chart: it fixes all twelve houses and describes your temperament, body and "
-             "approach to life. The planet that rules it, your lagna lord, carries special weight for you.",
-    "moon_sign": "Your Moon sign (Rashi) is the sign the Moon occupied at your birth. Vedic astrology treats it as the sign of the mind: "
-                 "it describes your emotions, moods and what makes you feel secure, and Indian daily horoscopes are read from it.",
-    "sun_sign": "Your Sun sign here uses the sidereal (star-based) zodiac, so it is often one sign earlier than the Western star sign "
-                "you may know. The Sun stands for your core self, vitality, confidence and relationship with authority.",
-    "nakshatra": "The sky is divided into 27 nakshatras (lunar mansions), each with a ruling planet and a deity. The nakshatra holding "
-                 "your Moon is your birth star: it fine-tunes the Moon sign's meaning and decides the order of your dasha periods.",
-    "dasha": "Vimshottari Dasha is the Vedic timing system. Life is divided into planetary periods (mahadashas) lasting 6 to 20 years, "
-             "each split into sub-periods (antardashas). The planets running the current period are believed to bring their own "
-             "themes forward, so the dasha shows which part of your chart is 'switched on' right now and until when.",
-    "yogas": "A yoga is a special combination of planets, for example two planets sharing a sign, that classical texts link to a "
-             "particular result. Charts differ in how many they have; each one present adds a specific promise or tendency.",
-    "transits": "Transits are where the slow-moving planets are today compared with your birth chart. Saturn and Jupiter stay in a "
-                "sign for years, so they describe the climate of the current period. Sade Sati is Saturn's roughly 7.5-year passage "
-                "around your Moon sign, traditionally a demanding but maturing time.",
-    "domains": "Each area of life is linked to a house of the chart. Its score combines the strength of that house, the planet that "
-               "rules it and the planets that naturally signify it (karakas). A higher score means the chart supports that area more.",
+    "lagna": "Your rising sign (Lagna) is the sign that was coming up over the sky at the minute and place you were born. "
+             "It shapes how you come across, your body and how you go about life. Its planet matters a lot for you.",
+    "moon_sign": "Your sign (Moon sign, or Rashi) is the sign the Moon was in when you were born. "
+                 "It shows your mind and feelings, and what makes you feel safe. Indian daily horoscopes use this sign.",
+    "sun_sign": "Your Sun sign here uses the star-based zodiac, so it is often one sign before the Western star sign you may know. "
+                "The Sun stands for your confidence and what drives you.",
+    "nakshatra": "The sky is split into 27 star groups (nakshatras). Your birth star is the one the Moon was in when you were born. "
+                 "It adds detail to your sign and sets the order of the times in your life.",
+    "dasha": "In Indian astrology, each planet takes a turn to shape your life for some years (a dasha). "
+             "Each turn lasts 6 to 20 years and has shorter turns inside it. It shows which part of your chart matters most right now.",
+    "yogas": "A special mix (yoga) is when planets sit in a certain way, like two planets in the same sign. "
+             "The old books say each mix brings a certain result.",
+    "transits": "Transits are where the slow planets are today, compared with your birth chart. Saturn and Jupiter stay in one sign "
+                "for a long time, so they show the mood of these years. Sade Sati is Saturn's hard time of about seven and a half "
+                "years over your sign. It can feel heavy, but it helps you grow.",
+    "domains": "Each part of life, like love, money or work, has its own place in the chart. Its score shows how much your chart "
+               "helps that part of life. A higher score means more help.",
     # Palmistry
-    "hand_shape": "Palmists sort hands into four elements (earth, air, fire, water) from the shape of the palm and the length of the "
-                  "fingers. Your hand's element is read as your basic temperament.",
-    "heart": "The Heart line runs across the top of the palm, below the fingers. It is read for your emotional style: how you love, "
-             "show feelings and attach to people.",
-    "head": "The Head line runs across the middle of the palm. It is read for your way of thinking: practical or imaginative, "
-            "focused or wide-ranging.",
-    "life": "The Life line curves around the base of the thumb. Despite its name, palmists do not read it for lifespan; it reflects "
-            "vitality, energy and major changes in direction.",
-    "fate": "The Fate line runs up the centre of the palm toward the middle finger. It is read for career and how much life feels "
-            "shaped by outside circumstances. Many hands have no clear fate line, which is traditionally read as a self-made path.",
-    "sun": "The Sun (Apollo) line runs up toward the ring finger and is linked with recognition, creativity and personal success.",
-    "mounts": "Mounts are the fleshy pads at the base of each finger and around the palm, each named after a planet. A well-developed "
-              "mount strengthens that planet's qualities in you; a flat one suggests they play a smaller role.",
-    "thumb": "The thumb is read for willpower and reasoning. A long thumb is traditionally linked with determination and self-direction.",
+    "hand_shape": "Palm readers sort hands into four types (earth, air, fire, water) by the shape of the palm and the length of the "
+                  "fingers. Your type shows your basic nature.",
+    "heart": "The heart line runs across the top of the palm, below the fingers. It shows how you love and show your feelings.",
+    "head": "The head line runs across the middle of the palm. It shows how you think: practical or dreamy, focused or wide.",
+    "life": "The life line curves around the bottom of the thumb. It does not show how long you will live. "
+            "It shows your energy and the big changes in your life.",
+    "fate": "The fate line runs up the middle of the palm toward the middle finger. It shows your work and how much outside events "
+            "shape your life. Many hands have no clear fate line, which means you shape your own path.",
+    "sun": "The sun line runs up toward the ring finger. It shows success and being noticed.",
+    "mounts": "The soft pads (mounts) at the bottom of each finger and around the palm each have a planet's name. "
+              "A full pad makes that planet's side of you stronger; a flat one makes it smaller.",
+    "thumb": "The thumb shows willpower. A long thumb means you are set on what you want and steer your own life.",
 }
 
-NUMEROLOGY_LABELS = {"moolank": "Moolank · Psychic number", "bhagyank": "Bhagyank · Destiny number",
-                     "namank": "Namank · Name number", "personal_year": "Personal Year"}
+NUMEROLOGY_LABELS = {"moolank": "Birthday number (Moolank)", "bhagyank": "Life number (Bhagyank)",
+                     "namank": "Name number (Namank)", "personal_year": "This year's number (Personal Year)"}
+DIGNITY_WORDS = {"exalted": "at its very best", "moolatrikona": "very strong", "own_sign": "at home and strong",
+                 "own": "at home and strong", "friendly": "helped by friends", "friendly_sign": "helped by friends",
+                 "enemy": "uneasy", "enemy_sign": "uneasy", "debilitated": "weak"}
+DOMAIN_WORDS = {"career": "Work", "relationships": "Love", "finance": "Money", "health": "Health", "education": "Learning",
+                "family": "Family", "communication": "Speaking up", "spirituality": "Inner peace"}
+YOGA_WORDS = {"gaja_kesari": "Moon and Jupiter together", "budha_aditya": "Sun and Mercury together",
+              "chandra_mangala": "Moon and Mars together", "ruchaka": "a strong Mars", "bhadra": "a strong Mercury",
+              "hamsa": "a strong Jupiter", "malavya": "a strong Venus", "shasha": "a strong Saturn",
+              "sunapha": "a planet just after the Moon", "anapha": "a planet just before the Moon",
+              "durudhara": "planets on both sides of the Moon", "kemadruma": "a lonely Moon", "yogakaraka": "a lucky planet",
+              "raja_yoga": "a pattern for rising up", "dhana_yoga": "a pattern for wealth", "viparita_raja": "good from hard times",
+              "mangal_dosha": "Mars and marriage", "neecha_bhanga": "a weak spot that turns strong"}
+ASSESSMENT_WORDS = {"strong": "very good", "supportive": "good", "mixed": "up and down", "challenging": "take care"}
 PALM_LINE_ORDER = ("heart", "head", "life", "fate", "sun")
 
 
@@ -83,11 +92,20 @@ def _numerology_facts(report: dict) -> list[dict]:
         if comp.get("compound_number") is not None:
             value += f" (from {comp['compound_number']})"
         if comp.get("planet"):
-            value += f" · ruled by {comp['planet']}"
+            value += f" · its planet: {comp['planet']}"
         if key == "personal_year" and report.get("target_year"):
             value += f" · for {report['target_year']}"
         facts.append(_fact("numerology", key, label, value))
     return facts
+
+
+def _yoga_words(yoga: dict) -> str:
+    """'Kemadruma Yoga' -> 'A lonely Moon (Kemadruma Yoga)'."""
+    plain = YOGA_WORDS.get(yoga.get("key", ""))
+    if not plain:
+        return yoga["name"]
+    proper = yoga["name"].split(" (")[0]
+    return f"{plain[0].upper()}{plain[1:]} ({proper})"
 
 
 def _astrology_facts(result: dict) -> list[dict]:
@@ -95,41 +113,42 @@ def _astrology_facts(result: dict) -> list[dict]:
     facts = []
     lagna = chart.get("lagna")
     if lagna and not result.get("birth_time_unknown"):
-        facts.append(_fact("astrology", "lagna", "Lagna · Ascendant",
+        facts.append(_fact("astrology", "lagna", "Rising sign (Lagna)",
                            f"{lagna['sign']} ({lagna.get('sign_sanskrit', '')}), ruled by {lagna.get('lord', '')}"))
     moon = chart.get("planets", {}).get("Moon", {})
     if chart.get("moon_sign"):
-        dignity = f", {moon['dignity']}" if moon.get("dignity") and moon["dignity"] not in ("neutral", "none") else ""
-        house = f" in house {moon['house']}" if moon.get("house") and not result.get("birth_time_unknown") else ""
-        facts.append(_fact("astrology", "moon_sign", "Moon sign · Rashi", f"{chart['moon_sign']}{house}{dignity}"))
+        dignity = DIGNITY_WORDS.get(str(moon.get("dignity") or ""), "")
+        dignity = f"; the Moon is {dignity} here" if dignity else ""
+        facts.append(_fact("astrology", "moon_sign", "Your sign (Moon sign, Rashi)", f"{chart['moon_sign']}{dignity}"))
     if moon.get("nakshatra"):
         n = moon["nakshatra"]
-        facts.append(_fact("astrology", "nakshatra", "Birth star · Nakshatra",
-                           f"{n['name']} (pada {n.get('pada')}), ruled by {n.get('lord')}, deity {n.get('deity')}"))
+        facts.append(_fact("astrology", "nakshatra", "Birth star (Nakshatra)",
+                           f"{n['name']} (part {n.get('pada')} of 4), its planet: {n.get('lord')}"))
     if chart.get("sun_sign"):
-        facts.append(_fact("astrology", "sun_sign", "Sun sign (sidereal)", chart["sun_sign"]))
+        facts.append(_fact("astrology", "sun_sign", "Sun sign (star-based)", chart["sun_sign"]))
     period = chart.get("dasha", {}).get("current_period")
     if period:
-        facts.append(_fact("astrology", "dasha", "Current dasha period",
-                           f"{period['mahadasha']} mahadasha (until {_date(period.get('mahadasha_end'))}) with "
-                           f"{period['antardasha']} antardasha ({_date(period.get('antardasha_start'))} – {_date(period.get('antardasha_end'))})"))
+        facts.append(_fact("astrology", "dasha", "The time you are in now (dasha)",
+                           f"{period['mahadasha']}'s turn until {_date(period.get('mahadasha_end'))}, with a shorter "
+                           f"{period['antardasha']} time from {_date(period.get('antardasha_start'))} to {_date(period.get('antardasha_end'))}"))
     yogas = chart.get("yogas") or []
-    facts.append(_fact("astrology", "yogas", "Yogas in your chart",
-                       "; ".join(f"{y['name']} ({y.get('condition', '').rstrip('.')})" for y in yogas) if yogas else "No classical yoga from the checked list"))
+    facts.append(_fact("astrology", "yogas", "Special mixes in your chart (yogas)",
+                       "; ".join(dict.fromkeys(_yoga_words(y) for y in yogas)) if yogas else "None of the special mixes we look for"))
     transits = chart.get("transits")
     if transits:
         parts = []
         for planet in ("saturn", "jupiter"):
             t = transits.get(planet)
             if t:
-                parts.append(f"{planet.title()} in {t['sign']} ({t.get('house_from_moon')}th from your Moon)")
+                parts.append(f"{planet.title()} is in {t['sign']}")
         sade = transits.get("sade_sati", {})
-        parts.append(f"Sade Sati active ({sade.get('phase')})" if sade.get("active") else "Sade Sati not active")
-        facts.append(_fact("astrology", "transits", f"Transits as of {_date(transits.get('as_of'))}", "; ".join(parts)))
+        parts.append("Saturn's hard time (Sade Sati) is on now" if sade.get("active") else "Saturn's hard time (Sade Sati) is not on now")
+        facts.append(_fact("astrology", "transits", f"Where the slow planets are now ({_date(transits.get('as_of'))})", "; ".join(parts)))
     domains = chart.get("domains")
     if domains:
-        facts.append(_fact("astrology", "domains", "Life areas in your chart",
-                           "; ".join(f"{d['label']} {d['score']}/100 ({d['assessment']})" for d in domains.values())))
+        facts.append(_fact("astrology", "domains", "Love, money, work and more",
+                           "; ".join(f"{DOMAIN_WORDS.get(k, d['label'])} {d['score']} out of 100 ({ASSESSMENT_WORDS.get(d['assessment'], d['assessment'])})"
+                                     for k, d in domains.items())))
     return facts
 
 
@@ -138,7 +157,7 @@ def _palm_facts(result: dict) -> list[dict]:
     facts = []
     geom = analysis.get("geometry") or {}
     if geom.get("element"):
-        facts.append(_fact("palmistry", "hand_shape", "Hand shape · Element",
+        facts.append(_fact("palmistry", "hand_shape", "Hand shape",
                            f"{geom['element'].title()} hand ({geom.get('palm_shape', '')} palm, {geom.get('finger_length', '')} fingers)"))
     for key in PALM_LINE_ORDER:
         line = analysis.get("lines", {}).get(key)
@@ -152,12 +171,12 @@ def _palm_facts(result: dict) -> list[dict]:
                 bits.append("forked end")
             value = ", ".join(b for b in bits if b)
         else:
-            value = "Not clearly visible in your photo"
+            value = "Not clear in your photo"
         facts.append(_fact("palmistry", key, line.get("name", key.title()), value))
     mounts = analysis.get("mounts") or {}
     notable = [f"{m['name']}: {m['development']}" for m in mounts.values() if m.get("development") and m["development"] != "average"]
     if mounts:
-        facts.append(_fact("palmistry", "mounts", "Mounts", "; ".join(notable) if notable else "All mounts of average development"))
+        facts.append(_fact("palmistry", "mounts", "Soft pads of the palm (mounts)", "; ".join(notable) if notable else "All pads look average"))
     if geom.get("thumb"):
         facts.append(_fact("palmistry", "thumb", "Thumb", f"{geom['thumb'].title()} thumb"))
     return facts

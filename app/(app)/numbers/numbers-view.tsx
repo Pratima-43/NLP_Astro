@@ -6,6 +6,7 @@ import { useAuth, useUser } from "@/components/providers/AuthProvider";
 import {
   GenerationNote, GoodToKnow, InShort, NextStepCard, PointList, SectionTitle, SourceItem,
 } from "@/components/readings/Blocks";
+import { AreaCards } from "@/components/readings/AreaCards";
 import { PrintButton } from "@/components/readings/PrintButton";
 import { ReadingHeader } from "@/components/readings/ReadingHeader";
 import { StartPanel } from "@/components/readings/StartPanel";
@@ -18,6 +19,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import { postJson } from "@/lib/api";
 import { useLatest } from "@/lib/hooks";
 import { formatDate, ordinal } from "@/lib/format";
+import { sortIntoAreas } from "@/lib/areas";
 import { step as stepOf } from "@/lib/journey";
 import { NUMBER_INFO, NUMBER_ORDER, groupClaims } from "@/lib/readings";
 import type { NumerologyComponent, NumerologyReport } from "@/types/readings";
@@ -29,12 +31,12 @@ const STAGES = [
   "Adding up your whole birth date",
   "Turning the letters of your name into numbers",
   "Finding what the books say about your numbers",
-  "Writing your reading in plain words",
+  "Writing it all in simple words",
 ];
 
 const PLANET_WORDS: Record<string, string> = {
-  Sun: "the Sun", Moon: "the Moon", Jupiter: "Jupiter", Rahu: "Rahu (the Moon’s north node)", Mercury: "Mercury",
-  Venus: "Venus", Ketu: "Ketu (the Moon’s south node)", Saturn: "Saturn", Mars: "Mars",
+  Sun: "the Sun", Moon: "the Moon", Jupiter: "Jupiter", Rahu: "Rahu (a shadow planet)", Mercury: "Mercury",
+  Venus: "Venus", Ketu: "Ketu (a shadow planet)", Saturn: "Saturn", Mars: "Mars",
 };
 
 function whyItApplies(layer: string, name: string, number: number): string {
@@ -122,7 +124,8 @@ function NumbersResult({ report, user, onRemake }: { report: NumerologyReport; u
 
   const headline = synthesis?.headline || `Your numbers are ${c.moolank.number}, ${c.bhagyank.number}, ${c.namank.number} and ${c.personal_year.number}`;
   const overview = synthesis?.overview
-    || `Your birth-day number is ${c.moolank.number}, your life-path number is ${c.bhagyank.number}, and your name number is ${c.namank.number}. ${report.target_year} is a number ${c.personal_year.number} year for you. Below you can see what the books say about each one.`;
+    || `Your birthday number is ${c.moolank.number}. Your life number is ${c.bhagyank.number}. Your name number is ${c.namank.number}. And ${report.target_year} is a ${c.personal_year.number} year for you. Below, you can see what each one means.`;
+  const areas = sortIntoAreas(NUMBER_ORDER.flatMap((k) => report.interpretations[k] ?? []));
 
   return (
     <div className="flex flex-col gap-10">
@@ -143,13 +146,12 @@ function NumbersResult({ report, user, onRemake }: { report: NumerologyReport; u
             const info = NUMBER_INFO[key];
             return (
               <a key={key} href={`#${key}`} className="group flex flex-col gap-3 border-b border-l border-line px-5 py-7 first:border-l-0 first:pl-0 max-lg:[&:nth-child(3)]:border-l-0 max-lg:[&:nth-child(3)]:pl-0">
-                <span className="eyebrow text-num">{info.sanskrit}</span>
                 <span className="font-display text-[6.5rem] leading-[0.85] text-ink transition-colors group-hover:text-num" aria-hidden="true">
                   {calc.number}
                 </span>
                 <span className="text-xl font-semibold leading-snug">{info.name}</span>
                 <span className="text-base text-ink-2">
-                  {calc.planet ? `Linked with ${PLANET_WORDS[calc.planet] ?? calc.planet}` : `For ${report.target_year}`}
+                  {calc.planet ? `Its planet: ${PLANET_WORDS[calc.planet] ?? calc.planet}` : `For ${report.target_year}`}
                 </span>
                 <span className="sr-only">Number {calc.number}</span>
               </a>
@@ -157,6 +159,13 @@ function NumbersResult({ report, user, onRemake }: { report: NumerologyReport; u
           })}
         </div>
       </section>
+
+      {areas.length > 0 && (
+        <section aria-labelledby="num-areas" className="flex flex-col gap-5">
+          <SectionTitle id="num-areas" title="Love, money, work and more" subtitle="What your numbers say about each part of your life." />
+          <AreaCards notes={areas} tone="num" />
+        </section>
+      )}
 
       {synthesis?.year_focus?.text && (
         <section className="grid gap-4 rounded-[2rem] bg-num-soft p-6 sm:p-10 md:grid-cols-[14rem_1fr] md:gap-10">
@@ -174,7 +183,7 @@ function NumbersResult({ report, user, onRemake }: { report: NumerologyReport; u
 
       {NUMBER_ORDER.map((key) => <NumberSection key={key} component={key} report={report} />)}
 
-      <Disclosure title="How we worked this out" subtitle="The sums step by step, and the books each meaning comes from">
+      <Disclosure title="How did we get this?" subtitle="The sums, step by step, and the books each line comes from">
         <div className="flex flex-col gap-8">
           {NUMBER_ORDER.map((key) => <NumberWorking key={key} component={key} report={report} />)}
         </div>
@@ -200,7 +209,6 @@ function NumberSection({ component, report }: { component: NumerologyComponent; 
     <section id={component} aria-labelledby={`${component}-title`} className="grid scroll-mt-28 gap-6 border-t border-ink/80 pt-8 md:grid-cols-[11rem_1fr] md:gap-10">
       <div className="flex flex-row items-end gap-4 md:flex-col md:items-start">
         <span className="font-display text-[8rem] leading-[0.8] text-num" aria-hidden="true">{calc.number}</span>
-        <p className="eyebrow pb-2 text-ink-3">{info.sanskrit}</p>
       </div>
       <div className="flex min-w-0 flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -215,7 +223,7 @@ function NumberSection({ component, report }: { component: NumerologyComponent; 
 
       {component === "moolank" && calc.compound_number != null && calc.compound_number >= 10 && (
         <p className="rounded-2xl bg-num-soft px-5 py-4 text-lg">
-          You were born on the <strong>{ordinal(calc.compound_number)}</strong>. The books also read {calc.compound_number} as a number of its own, so some meanings below are about that exact date.
+          You were born on the <strong>{ordinal(calc.compound_number)}</strong>. The books have extra things to say about the number {calc.compound_number}, so some lines below are about that exact date.
         </p>
       )}
 
@@ -224,8 +232,8 @@ function NumberSection({ component, report }: { component: NumerologyComponent; 
           {written.headline && <p className="font-display text-3xl leading-tight">{written.headline}</p>}
           {written.summary && <p className="text-xl leading-relaxed">{written.summary}</p>}
           <div className="grid gap-x-10 gap-y-8 lg:grid-cols-2">
-            <PointList title="Lean into" kind="good" items={written.strengths.map((s) => s.text)} />
-            <PointList title="Go easy on" kind="care" items={written.challenges.map((s) => s.text)} />
+            <PointList title="Your good side" kind="good" items={written.strengths.map((s) => s.text)} />
+            <PointList title="Watch out for" kind="care" items={written.challenges.map((s) => s.text)} />
           </div>
           {written.key_themes.length > 0 && (
             <ul className="flex flex-col gap-2">
@@ -240,12 +248,12 @@ function NumberSection({ component, report }: { component: NumerologyComponent; 
         </>
       ) : records.length ? (
         <div className="grid gap-x-10 gap-y-8 lg:grid-cols-2">
-          <PointList title="Lean into" kind="good" items={fallback.good} />
-          <PointList title="Go easy on" kind="care" items={fallback.care} />
-          <PointList title="Also linked with" kind="other" items={fallback.other} />
+          <PointList title="Your good side" kind="good" items={fallback.good} />
+          <PointList title="Watch out for" kind="care" items={fallback.care} />
+          <PointList title="Other things" kind="other" items={fallback.other} />
         </div>
       ) : (
-        <p className="text-lg text-ink-2">The books in our library don’t describe this number yet, so we don’t make anything up.</p>
+        <p className="text-lg text-ink-2">Our books don’t say anything about this number yet, so we don’t make anything up.</p>
       )}
       </div>
     </section>
@@ -280,7 +288,7 @@ function NumberWorking({ component, report }: { component: NumerologyComponent; 
       )}
       {records.length > 0 && (
         <details className="rounded-2xl border border-line">
-          <summary className="flex min-h-12 items-center px-4 text-lg font-semibold">Show the {records.length} statements from the books</summary>
+          <summary className="flex min-h-12 items-center px-4 text-lg font-semibold">Show the {records.length} lines from the books</summary>
           <ul className="flex flex-col gap-2 p-3">
             {records.map((r) => (
               <SourceItem key={r.record_id} claim={r.claim} source={r.source_name} reasons={[whyItApplies(r.evidence_layer, info.name.toLowerCase(), calc.number)]} />

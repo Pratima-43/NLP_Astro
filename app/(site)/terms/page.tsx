@@ -23,7 +23,7 @@ export default function TermsPage() {
       </InfoSection>
 
       <InfoSection title="AI-written text">
-        <p>Readings are written by an AI from the statements shown under “How we worked this out” in each reading. AI-written text can contain mistakes; those sections show the underlying data so you can check it.</p>
+        <p>Readings are written by an AI from the statements shown under “How did we get this?” in each reading. AI-written text can contain mistakes; those sections show the underlying data so you can check it.</p>
       </InfoSection>
 
       <InfoSection title="Stopping">

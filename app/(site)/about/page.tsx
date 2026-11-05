@@ -12,9 +12,9 @@ export default function AboutPage() {
     >
       <InfoSection title="What it does">
         <ul>
-          <li><strong>Your Numbers (numerology)</strong> turns your name and birthday into four numbers: your birth-day number (Moolank), life-path number (Bhagyank), name number (Namank) and this year’s number (Personal Year).</li>
-          <li><strong>Your Stars (Vedic astrology)</strong> works out where the sun, moon and planets were when you were born, and reads them with classical rules.</li>
-          <li><strong>Your Hand (palmistry)</strong> finds the main lines on a photo of your palm, measures them, and reads them the way the palmist Cheiro described.</li>
+          <li><strong>Your Numbers (numerology)</strong> turns your name and birthday into four numbers: your birthday number (Moolank), life number (Bhagyank), name number (Namank) and this year’s number (Personal Year).</li>
+          <li><strong>Your Stars (Indian astrology)</strong> works out where the Sun, Moon and planets were when you were born, and reads them with the rules of the old books.</li>
+          <li><strong>Your Hand (palmistry)</strong> finds the main lines on a photo of your palm, measures them, and reads them the way the famous palm reader Cheiro did.</li>
           <li><strong>Your Full Story and Ask</strong> put all three side by side, show where they agree or differ, and answer your questions from your own readings.</li>
         </ul>
       </InfoSection>

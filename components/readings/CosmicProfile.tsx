@@ -26,10 +26,10 @@ function Missing({ href, children }: { href?: string; children: ReactNode }) {
 }
 
 /**
- * Everything about you on one night-sky card: your four numbers, your Sun, Moon and Rising, and your hand.
+ * Everything about you on one night-sky card: your four numbers, your signs and birth star, and your hand.
  * Used on Home with real data, and on the welcome page as an example.
  */
-export function CosmicProfile({ data, links = true, label = "Cosmic profile" }: { data: ProfileData; links?: boolean; label?: string }) {
+export function CosmicProfile({ data, links = true, label = "About you" }: { data: ProfileData; links?: boolean; label?: string }) {
   const { numbers, stars, hand } = data;
   return (
     <section className="night relative overflow-hidden rounded-[2rem]" aria-label={label}>
@@ -45,11 +45,11 @@ export function CosmicProfile({ data, links = true, label = "Cosmic profile" }: 
           <div className="flex flex-col gap-4 md:pr-8">
             <p className="eyebrow text-[#e3b56a]">Numbers</p>
             {numbers ? (
-              <dl className="grid grid-cols-4 gap-x-3 gap-y-2">
-                {[["Day", numbers.moolank], ["Path", numbers.bhagyank], ["Name", numbers.namank], ["Year", numbers.year]].map(([k, v]) => (
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-4 md:grid-cols-2 lg:grid-cols-4">
+                {[["Birthday", numbers.moolank], ["Life", numbers.bhagyank], ["Name", numbers.namank], ["This year", numbers.year]].map(([k, v]) => (
                   <div key={k} className="flex flex-col items-start gap-1">
                     <dd className="font-display text-5xl leading-none">{v}</dd>
-                    <dt className="font-[family-name:var(--font-label)] text-[0.75rem] uppercase tracking-[0.08em] text-moon-2">{k}</dt>
+                    <dt className="text-sm font-semibold text-moon-2">{k}</dt>
                   </div>
                 ))}
               </dl>
@@ -60,7 +60,7 @@ export function CosmicProfile({ data, links = true, label = "Cosmic profile" }: 
             <p className="eyebrow text-[#a9a6f2]">Stars</p>
             {stars ? (
               <dl className="flex flex-col gap-2.5">
-                {[["Sun", stars.sun], ["Moon", stars.moon], ["Rising", stars.rising ?? "Unknown"], ["Star", stars.birthStar]].map(([k, v]) => (
+                {[["Your sign", stars.moon], ["Sun sign", stars.sun], ["Rising sign", stars.rising ?? "Not known"], ["Birth star", stars.birthStar]].map(([k, v]) => (
                   <div key={k} className="flex items-baseline justify-between gap-3 border-b border-night-line/70 pb-2 last:border-0">
                     <dt className="eyebrow text-moon-2">{k}</dt>
                     <dd className="font-display text-2xl leading-none">{v}</dd>
@@ -75,7 +75,7 @@ export function CosmicProfile({ data, links = true, label = "Cosmic profile" }: 
             {hand ? (
               <div className="flex flex-col gap-2">
                 <p className="font-display text-5xl capitalize leading-none">{hand.element}</p>
-                <p className="eyebrow text-moon-2">hand</p>
+                <p className="eyebrow text-moon-2">hand shape</p>
                 <p className="text-base text-moon-2">{hand.detail}</p>
               </div>
             ) : <Missing href={links ? "/hand" : undefined}>Read my palm</Missing>}

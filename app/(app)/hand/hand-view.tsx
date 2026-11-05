@@ -9,6 +9,7 @@ import { useAuth, useUser } from "@/components/providers/AuthProvider";
 import {
   GenerationNote, GoodToKnow, InShort, NextStepCard, PointList, PredictionList, SectionTitle, SourceItem, TopicCards,
 } from "@/components/readings/Blocks";
+import { AreaCards } from "@/components/readings/AreaCards";
 import { PrintButton } from "@/components/readings/PrintButton";
 import { ReadingHeader } from "@/components/readings/ReadingHeader";
 import { WorkingPanel } from "@/components/readings/WorkingPanel";
@@ -20,6 +21,7 @@ import { apiFetch } from "@/lib/api";
 import { useLatest } from "@/lib/hooks";
 import { ACCEPTED_PHOTO_TYPES, MAX_PHOTO_MB, shrinkPhoto } from "@/lib/image";
 import { humanize, joinWords } from "@/lib/format";
+import { sortIntoAreas } from "@/lib/areas";
 import { step as stepOf } from "@/lib/journey";
 import { HAND_SHAPES, LINE_WORDS, groupClaims, uniqueEvidence } from "@/lib/readings";
 import type { PalmLine, PalmReading } from "@/types/readings";
@@ -29,9 +31,9 @@ const STAGES = [
   "Finding your hand in the photo",
   "Straightening the palm",
   "Tracing the main lines",
-  "Measuring the lines, mounts and hand shape",
-  "Finding what Cheiro’s book says",
-  "Writing your reading in plain words",
+  "Measuring the lines and the shape of your hand",
+  "Finding what the palm book says",
+  "Writing it all in simple words",
 ];
 const SECTION_ICONS = { personality: UserRound, relationships: Heart, career: Briefcase, education: Brain, creativity: Palette, health: Activity };
 const DO = ["Palm facing the camera", "Fingers together, pointing up", "Good daylight, no dark shadows", "Your whole hand fills the photo"];
@@ -121,15 +123,15 @@ export function HandView() {
       {showUpload && (
         <section className="flex flex-col gap-14">
           <div className="flex flex-col gap-4">
-            <p className="eyebrow text-hand">Step 01</p>
+            <p className="eyebrow text-hand">Step 1</p>
             <h2 className="border-b border-ink/80 pb-4 text-4xl sm:text-5xl">Which hand will you photograph?
             </h2>
-            <p className="text-lg text-ink-2">Palm readers start with the hand you write with. It shows the life you have made.</p>
+            <p className="text-lg text-ink-2">Palm readers start with the hand you write with.</p>
             <div className="max-w-md"><HandChoice value={hand} onChange={setHand} label="Hand in the photo" /></div>
           </div>
 
           <div className="flex flex-col gap-4">
-            <p className="eyebrow text-hand">Step 02</p>
+            <p className="eyebrow text-hand">Step 2</p>
             <h2 className="border-b border-ink/80 pb-4 text-4xl sm:text-5xl">Take a clear photo of your palm
             </h2>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -163,7 +165,7 @@ export function HandView() {
           </div>
 
           <div className="flex flex-col gap-4">
-            <p className="eyebrow text-hand">Step 03</p>
+            <p className="eyebrow text-hand">Step 3</p>
             <h2 className="border-b border-ink/80 pb-4 text-4xl sm:text-5xl">Read my palm
             </h2>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -181,6 +183,14 @@ export function HandView() {
     </div>
   );
 }
+
+/** A short, friendly headline for each hand shape. */
+const HAND_HEADLINES: Record<string, string> = {
+  earth: "A practical, steady hand",
+  air: "A curious, chatty hand",
+  fire: "A lively, get-up-and-go hand",
+  water: "A gentle, dreamy hand",
+};
 
 function lineWords(line: PalmLine): string {
   const bits = [
@@ -201,9 +211,10 @@ function HandResult({ reading, marked }: { reading: PalmReading; marked: string 
   const groups = groupClaims(uniqueEvidence(reading.evidence));
   const evidence = uniqueEvidence(reading.evidence);
 
-  const headline = interpretation.headline || `A ${element} hand`;
+  const headline = interpretation.headline || HAND_HEADLINES[element] || "Your hand";
   const overview = interpretation.overview
-    || `You have ${element === "air" || element === "earth" ? "an" : "a"} ${element} hand: ${HAND_SHAPES[element] ?? "a balanced shape"}. In your photo we found your ${joinWords(found.map((l) => (LINE_WORDS[l.key]?.name ?? l.name).toLowerCase()))}.`;
+    || `Your hand has ${HAND_SHAPES[element] ?? "a balanced shape"}. In your photo we found your ${joinWords(found.map((l) => (LINE_WORDS[l.key]?.name ?? l.name).toLowerCase()))}.`;
+  const areas = sortIntoAreas(evidence);
 
   return (
     <div className="flex flex-col gap-10">
@@ -213,22 +224,29 @@ function HandResult({ reading, marked }: { reading: PalmReading; marked: string 
 
       <InShort headline={headline} text={overview} tone="hand" />
 
+      {areas.length > 0 && (
+        <section aria-labelledby="hand-areas" className="flex flex-col gap-5">
+          <SectionTitle id="hand-areas" title="Love, money, work and more" subtitle="What your hand says about each part of your life." />
+          <AreaCards notes={areas} tone="hand" />
+        </section>
+      )}
+
       <section aria-labelledby="lines-title" className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
         <div className="flex flex-col gap-3">
           {marked ? (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element -- the marked-up photo returned by the reading */}
               <img src={marked} alt={`Your ${reading.hand} palm with the lines we found drawn on it`} className="w-full rounded-[2rem] bg-night object-contain" />
-              <p className="text-base text-ink-2">Coloured lines are the ones we found. Grey lines were too faint to count. Circles show the mounts.</p>
+              <p className="text-base text-ink-2">The coloured lines are the ones we found. Grey lines were too faint to use. The circles show the soft pads of your palm.</p>
             </>
           ) : (
             <Notice tone="info" title="We don’t keep your photo">
-              The photo with your lines drawn on it appears only right after a reading. Your measurements are saved below.
+              You can only see your photo with the lines drawn on it right after a reading. What we measured is saved below.
             </Notice>
           )}
         </div>
         <div className="flex flex-col gap-4">
-          <SectionTitle id="lines-title" title="Your lines" subtitle={`Your ${reading.hand} hand · ${humanize(element)} hand (${HAND_SHAPES[element] ?? ""})`} />
+          <SectionTitle id="lines-title" title="Your lines" subtitle={`Your ${reading.hand} hand. Shape: ${HAND_SHAPES[element] ?? humanize(element)}.`} />
           <ul className="flex flex-col gap-3">
             {lines.map((line) => (
               <li key={line.key} className="flex items-start gap-4 border-b border-line py-5">
@@ -251,30 +269,30 @@ function HandResult({ reading, marked }: { reading: PalmReading; marked: string 
 
       {written && (interpretation.predictions?.length ?? 0) > 0 && (
         <section aria-labelledby="hand-ahead" className="flex flex-col gap-5">
-          <SectionTitle id="hand-ahead" title="What your hand suggests" subtitle="Traditional tendencies, with how sure each one is." />
+          <SectionTitle id="hand-ahead" title="What your hand may say" subtitle="Gentle pointers, not promises, and how sure we are about each one." />
           <PredictionList predictions={interpretation.predictions ?? []} tone="hand" />
         </section>
       )}
 
       {written && (interpretation.sections?.length ?? 0) > 0 && (
         <section aria-labelledby="hand-topics" className="flex flex-col gap-5">
-          <SectionTitle id="hand-topics" title="Your reading, topic by topic" />
+          <SectionTitle id="hand-topics" title="Your life, one part at a time" />
           <TopicCards sections={interpretation.sections ?? []} icons={SECTION_ICONS} tone="hand" />
         </section>
       )}
 
       {!written && (
         <section aria-labelledby="hand-books" className="flex flex-col gap-5">
-          <SectionTitle id="hand-books" title="What Cheiro’s book says about your hand" />
+          <SectionTitle id="hand-books" title="What the palm book says about you" />
           <div className="grid gap-x-10 gap-y-8 lg:grid-cols-2">
-            <PointList title="Lean into" kind="good" items={groups.good} />
-            <PointList title="Go easy on" kind="care" items={groups.care} />
-            <PointList title="Also in your hand" kind="other" items={groups.other} />
+            <PointList title="Your good side" kind="good" items={groups.good} />
+            <PointList title="Watch out for" kind="care" items={groups.care} />
+            <PointList title="Other things" kind="other" items={groups.other} />
           </div>
         </section>
       )}
 
-      <Disclosure title="How we worked this out" subtitle="Each measurement, the rule it matched, and the book quote it led to">
+      <Disclosure title="How did we get this?" subtitle="Each thing we measured, and the line from the book it led to">
         <div className="flex flex-col gap-8">
           <div className="flex flex-col gap-3">
             <h3 className="text-3xl">What we measured</h3>
@@ -283,7 +301,7 @@ function HandResult({ reading, marked }: { reading: PalmReading; marked: string 
                 <thead className="bg-paper text-ink-2">
                   <tr>
                     <th scope="col" className="px-4 py-3 font-semibold">What we found</th>
-                    <th scope="col" className="px-4 py-3 font-semibold">Rule</th>
+                    <th scope="col" className="px-4 py-3 font-semibold">What we looked for</th>
                     <th scope="col" className="px-4 py-3 font-semibold">Measured</th>
                   </tr>
                 </thead>
@@ -300,8 +318,8 @@ function HandResult({ reading, marked }: { reading: PalmReading; marked: string 
             </div>
           </div>
           <div className="flex flex-col gap-3">
-            <h3 className="text-3xl">The mounts (fleshy pads of the palm)</h3>
-            <p className="text-base text-ink-2">Mounts are hard to judge from a flat photo, so they count for the least.</p>
+            <h3 className="text-3xl">The soft pads of your palm</h3>
+            <p className="text-base text-ink-2">Palm readers call these “mounts”. They are hard to judge from a flat photo, so they count for the least.</p>
             <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {Object.entries(analysis.mounts).map(([key, m]) => (
                 <li key={key} className="flex items-center justify-between gap-2 rounded-xl bg-paper px-4 py-2.5 text-base">
@@ -312,7 +330,7 @@ function HandResult({ reading, marked }: { reading: PalmReading; marked: string 
             </ul>
           </div>
           <div className="flex flex-col gap-3">
-            <h3 className="text-3xl">How the photo was read</h3>
+            <h3 className="text-3xl">How the photo was read (for experts)</h3>
             <ul className="flex flex-col gap-2">
               {Object.entries(reading.method).map(([k, v]) => (
                 <li key={k} className="rounded-xl bg-paper px-4 py-3 text-base"><span className="font-semibold">{humanize(k)}: </span>{v}</li>
@@ -320,7 +338,7 @@ function HandResult({ reading, marked }: { reading: PalmReading; marked: string 
             </ul>
           </div>
           <div className="flex flex-col gap-3">
-            <h3 className="text-3xl">Quotes from the book ({evidence.length})</h3>
+            <h3 className="text-3xl">What the book says, line by line ({evidence.length})</h3>
             <ul className="flex flex-col gap-2">
               {evidence.map((e) => <SourceItem key={e.claim} claim={e.claim} source={e.source_name} reasons={e.reasons} />)}
             </ul>
@@ -328,7 +346,7 @@ function HandResult({ reading, marked }: { reading: PalmReading; marked: string 
         </div>
       </Disclosure>
 
-      <GoodToKnow text={reading.disclaimer} />
+      <GoodToKnow text="Palm reading is an old tradition, not science. We find your lines from one photo, so light and focus can fool us. Nothing here is about your health or how long you will live." />
     </div>
   );
 }

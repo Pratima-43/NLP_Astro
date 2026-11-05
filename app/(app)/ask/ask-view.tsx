@@ -30,7 +30,7 @@ const SUGGESTIONS = [
 /** The server's technical message when the AI is switched off, in plain words. */
 function friendly(content: string, payload: ChatAnswer | null): string {
   return payload?.generation_status === "llm_not_configured"
-    ? "The AI guide is switched off on this site right now, so I can’t write an answer. Your three readings are all still there for you to read."
+    ? "The answer helper is switched off right now, so I can’t write an answer. Your three readings are all still there for you to read."
     : content;
 }
 
@@ -230,7 +230,7 @@ function Chat() {
       )}
 
       <p className="text-base text-ink-2">
-        Answers are traditional interpretations for reflection, not advice. Want everything in one place? <Link href="/story" className="font-semibold text-ink underline">Read your full story</Link>.
+        Answers come from old traditions. Use them to think, not as advice. Want everything in one place? <Link href="/story" className="font-semibold text-ink underline">Read your full story</Link>.
       </p>
     </div>
   );

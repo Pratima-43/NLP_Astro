@@ -9,7 +9,7 @@ import { Notice } from "@/components/ui/Notice";
 import { formatDate } from "@/lib/format";
 
 const INCLUDED = [
-  { icon: BookOpen, title: "Your Full Story", text: "All three readings side by side, topic by topic, with where they agree and where they differ." },
+  { icon: BookOpen, title: "Your Full Story", text: "Your three readings put together, with where they agree and where they don’t." },
   { icon: MessageCircle, title: "Ask a Question", text: "Ask anything in your own words. Every answer comes from your readings and shows which one it used." },
 ];
 

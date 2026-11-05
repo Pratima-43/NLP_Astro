@@ -16,7 +16,7 @@ export function ReadingHeader({ step, children }: { step: JourneyStep; children?
       <div className="grid items-end gap-8 border-b border-ink/80 pb-8 md:grid-cols-[1fr_auto]">
         <div className="flex flex-col gap-4">
           <p className={`eyebrow ${TONE[step.tone].text}`}>
-            {String(number).padStart(2, "0")} / {String(JOURNEY.length).padStart(2, "0")} — {step.tradition}
+            Step {number} of {JOURNEY.length} · {step.tradition}
           </p>
           <h1 className="text-6xl sm:text-7xl lg:text-8xl">{step.title}</h1>
           <p className="max-w-2xl text-xl leading-relaxed text-ink-2">{step.what}</p>

@@ -1,4 +1,5 @@
 // Shared helpers that turn reading data into plain words.
+import { plainClaim } from "@/lib/plain";
 import type { Confidence, DomainOutlook, EvidenceItem, NumerologyComponent, Polarity, Relation } from "@/types/readings";
 
 export type Group = "good" | "care" | "other";
@@ -11,13 +12,13 @@ export function polarityGroup(polarity: Polarity): Group {
   return "other";
 }
 
-/** Group claims by polarity, keeping each claim text once, strongest first. */
+/** Group claims by polarity in plain words, keeping each sentence once, strongest first. */
 export function groupClaims<T extends { claim: string; polarity: Polarity; weight?: number }>(items: T[], perGroup = 6): Record<Group, string[]> {
   const sorted = [...items].sort((a, b) => (b.weight ?? 0) - (a.weight ?? 0));
   const groups: Record<Group, string[]> = { good: [], care: [], other: [] };
   const seen = new Set<string>();
   for (const item of sorted) {
-    const text = item.claim.trim();
+    const text = plainClaim(item.claim);
     if (!text || seen.has(text)) continue;
     seen.add(text);
     const group = polarityGroup(item.polarity);
@@ -27,42 +28,42 @@ export function groupClaims<T extends { claim: string; polarity: Polarity; weigh
 }
 
 export const CONFIDENCE_WORDS: Record<Confidence, { label: string; note: string }> = {
-  high: { label: "Strong signs", note: "Several parts of your reading point this way." },
-  medium: { label: "Some signs", note: "One clear part of your reading points this way." },
-  low: { label: "Weak signs", note: "Only a little points this way, or the signs are mixed." },
+  high: { label: "Quite sure", note: "Many parts of your reading say this." },
+  medium: { label: "Fairly sure", note: "One clear part of your reading says this." },
+  low: { label: "Not very sure", note: "Only a small part says this, or the signs are mixed." },
 };
 
 export const DOMAIN_WORDS: Record<DomainOutlook["assessment"], { label: string; color: string }> = {
-  strong: { label: "Strong", color: "#15803d" },
+  strong: { label: "Very good", color: "#15803d" },
   supportive: { label: "Good", color: "#4d7c0f" },
-  mixed: { label: "Mixed", color: "#b45309" },
-  challenging: { label: "Needs care", color: "#b91c1c" },
+  mixed: { label: "Up and down", color: "#b45309" },
+  challenging: { label: "Take care", color: "#b91c1c" },
 };
 
 export const RELATION_WORDS: Record<Relation, { label: string; tone: string }> = {
-  agreement: { label: "They agree", tone: "bg-good-soft text-[#14532d]" },
+  agreement: { label: "All agree", tone: "bg-good-soft text-[#14532d]" },
   partial_overlap: { label: "Partly agree", tone: "bg-hand-soft text-hand-ink" },
-  difference: { label: "Different sides", tone: "bg-star-soft text-star-ink" },
-  contradiction: { label: "They disagree", tone: "bg-care-soft text-[#7c2d12]" },
-  single_source: { label: "Only one reading", tone: "bg-line text-ink-2" },
+  difference: { label: "Each says something different", tone: "bg-star-soft text-star-ink" },
+  contradiction: { label: "They don’t agree", tone: "bg-care-soft text-[#7c2d12]" },
+  single_source: { label: "Only one reading says this", tone: "bg-line text-ink-2" },
 };
 
 /** Plain names for the four numerology numbers. */
 export const NUMBER_INFO: Record<NumerologyComponent, { name: string; sanskrit: string; about: string }> = {
-  moolank: { name: "Birth-day number", sanskrit: "Moolank", about: "Your inner self. It comes from the day of the month you were born." },
-  bhagyank: { name: "Life-path number", sanskrit: "Bhagyank", about: "The direction of your life. It comes from your full date of birth." },
-  namank: { name: "Name number", sanskrit: "Namank", about: "How other people see you. It comes from the letters of your name." },
-  personal_year: { name: "Year number", sanskrit: "Personal Year", about: "What this year is about for you. It changes every year." },
+  moolank: { name: "Birthday number", sanskrit: "Moolank", about: "Who you are inside. We add up the day you were born." },
+  bhagyank: { name: "Life number", sanskrit: "Bhagyank", about: "Where your life is going. We add up your whole birth date." },
+  namank: { name: "Name number", sanskrit: "Namank", about: "How people see you. We turn the letters of your name into numbers." },
+  personal_year: { name: "This year’s number", sanskrit: "Personal Year", about: "What this year is about for you. It changes on your birthday each year." },
 };
 
 export const NUMBER_ORDER: NumerologyComponent[] = ["moolank", "bhagyank", "namank", "personal_year"];
 
 /** Short meanings for the main chart words, shown under each fact. */
 export const CHART_WORDS = {
-  lagna: { name: "Rising sign", sanskrit: "Lagna", about: "The sign rising in the east when you were born. It shapes your nature." },
-  moon: { name: "Moon sign", sanskrit: "Rashi", about: "Where the Moon was. It describes your mind and feelings." },
-  nakshatra: { name: "Birth star", sanskrit: "Nakshatra", about: "One of 27 star groups. Yours sets the order of your life periods." },
-  sun: { name: "Sun sign", sanskrit: "Surya rashi", about: "Where the Sun was. It stands for your core self and confidence." },
+  lagna: { name: "Rising sign", sanskrit: "Lagna", about: "The sign coming up over the sky at the moment you were born. It shapes how you come across." },
+  moon: { name: "Your sign", sanskrit: "Rashi", about: "The sign the Moon was in when you were born. It shows your mind and feelings. This is the sign used in Indian horoscopes." },
+  nakshatra: { name: "Birth star", sanskrit: "Nakshatra", about: "The group of stars the Moon was near when you were born. It sets the order of the times in your life." },
+  sun: { name: "Sun sign", sanskrit: "Surya rashi", about: "The sign the Sun was in. It shows your confidence and what drives you." },
 };
 
 /** Plain names for the palm lines. */
@@ -70,7 +71,7 @@ export const LINE_WORDS: Record<string, { name: string; about: string }> = {
   heart: { name: "Heart line", about: "Love and feelings" },
   head: { name: "Head line", about: "How you think" },
   life: { name: "Life line", about: "Energy and big changes (not how long you live)" },
-  fate: { name: "Fate line", about: "Work and life path" },
+  fate: { name: "Fate line", about: "Your work and where life takes you" },
   sun: { name: "Sun line", about: "Success and recognition" },
 };
 
@@ -98,16 +99,16 @@ export function uniqueEvidence(evidence: EvidenceItem[]): Array<EvidenceItem & {
 export function generationMessage(status: string | undefined): { title: string; text: string } | null {
   if (!status || status === "generated") return null;
   if (status === "no_source_records" || status === "no_readings") {
-    return { title: "Nothing to add here", text: "The traditional books have nothing to say about this part, so we don’t make anything up." };
+    return { title: "Nothing to add here", text: "The old books say nothing about this part, so we don’t make anything up." };
   }
   if (status === "llm_not_configured") {
     return {
       title: "Showing what the books say",
-      text: "The AI writer is switched off on this site, so instead of a written summary you’ll see the traditional statements that apply to you, one by one.",
+      text: "The writing helper is switched off right now. So you’ll see, one by one, the lines from the books that fit you.",
     };
   }
   return {
-    title: "The written summary didn’t finish",
-    text: "Our AI writer was too busy just now. Your results and the traditional statements below are complete. You can make the reading again in a minute to get the written summary.",
+    title: "The short summary didn’t finish",
+    text: "Our writing helper was too busy. Everything below is still complete. Try again in a minute to get the summary.",
   };
 }

@@ -143,7 +143,7 @@ export function HomeView() {
             return (
               <li key={step.key} className={`grid grid-cols-[auto_1fr] items-start gap-x-5 gap-y-4 border-b border-line py-8 sm:grid-cols-[5rem_1fr_auto] sm:items-center sm:gap-x-8 ${isNext ? "relative" : ""}`}>
                 <span className={`font-display text-5xl leading-none sm:text-6xl ${isNext ? "text-ink" : state === "done" ? TONE[step.tone].text : "text-ink/25"}`} aria-hidden="true">
-                  {state === "done" ? <Check className="h-11 w-11" strokeWidth={1.5} /> : `0${i + 1}`}
+                  {state === "done" ? <Check className="h-11 w-11" strokeWidth={1.5} /> : `${i + 1}`}
                 </span>
                 <div className="flex min-w-0 flex-col gap-2">
                   <div className="flex flex-wrap items-center gap-3">

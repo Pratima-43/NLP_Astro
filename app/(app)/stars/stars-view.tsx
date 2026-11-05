@@ -9,7 +9,7 @@ import {
 import { PrintButton } from "@/components/readings/PrintButton";
 import { ReadingHeader } from "@/components/readings/ReadingHeader";
 import { StartPanel } from "@/components/readings/StartPanel";
-import { BirthChart, ChartLegend, LifeAreas, PeriodTimeline, PlanetTable } from "@/components/readings/StarsParts";
+import { BirthChart, ChartLegend, LifeAreas, PERIOD_WORDS, PeriodTimeline, PlanetTable, YOGA_WORDS } from "@/components/readings/StarsParts";
 import { WorkingPanel } from "@/components/readings/WorkingPanel";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Disclosure } from "@/components/ui/Disclosure";
@@ -26,11 +26,11 @@ import type { UserProfile } from "@/types/user";
 const STEP = stepOf("stars");
 const STAGES = [
   "Finding your birth place on the map",
-  "Working out where every planet was",
-  "Finding your rising sign and the 12 houses",
-  "Checking special patterns and your life periods",
-  "Finding what the classical books say",
-  "Writing your reading in plain words",
+  "Working out where each planet was in the sky",
+  "Finding your sign and your rising sign",
+  "Looking at the times of your life",
+  "Finding what the old books say",
+  "Writing it all in simple words",
 ];
 const SECTION_ICONS = { personality: UserRound, career: Briefcase, relationships: Heart, finance: Coins, health: Activity, spirituality: Sparkles, education: GraduationCap, creativity: Palette };
 
@@ -99,11 +99,11 @@ export function StarsView() {
         >
           {!user.placeOfBirth && (
             <Notice tone="warning" title="We need your birth place" action={<ButtonLink href="/me">Add my birth place</ButtonLink>}>
-              The planets are worked out for the exact place you were born.
+              We need to know where you were born to see the sky as it was.
             </Notice>
           )}
           {!timeKnown && user.placeOfBirth && (
-            <Notice tone="info">Without a birth time we can’t work out your rising sign or houses, so those parts are left out. Everything else still works.</Notice>
+            <Notice tone="info">Without a birth time we can’t find your rising sign, so we leave that part out. Everything else still works.</Notice>
           )}
         </StartPanel>
       ) : (
@@ -125,21 +125,19 @@ function StarsResult({ reading, user, onRemake }: { reading: AstrologyReading; u
   const userTimeKnown = !user.timeOfBirthUnknown && Boolean(user.timeOfBirth);
   const stale = chartDate !== user.dateOfBirth || timeUnknown === userTimeKnown || (userTimeKnown && chartTime?.slice(0, 5) !== user.timeOfBirth);
 
-  const headline = interpretation.headline || (timeUnknown
-    ? `A ${chart.moon_sign} Moon born under ${moon.nakshatra.name}`
-    : `${chart.lagna.sign} rising, with the Moon in ${chart.moon_sign}`);
+  const headline = interpretation.headline || `Your sign is ${chart.moon_sign}`;
   const overview = interpretation.overview || [
+    `Your sign is ${chart.moon_sign} and your birth star is ${moon.nakshatra.name}.`,
     !timeUnknown && `Your rising sign is ${chart.lagna.sign}.`,
-    `Your Moon sign is ${chart.moon_sign} and your birth star is ${moon.nakshatra.name}.`,
-    period && `You are now in a ${period.mahadasha} period, which lasts until ${formatMonthYear(period.mahadasha_end)}.`,
+    period && `Until ${formatMonthYear(period.mahadasha_end)} you are in your ${period.mahadasha} time. ${PERIOD_WORDS[period.mahadasha] ?? ""}`,
   ].filter(Boolean).join(" ");
 
   const facts = [
-    !timeUnknown && { ...CHART_WORDS.lagna, value: chart.lagna.sign, extra: `${chart.lagna.sign_sanskrit}, ruled by ${chart.lagna.lord}` },
-    { ...CHART_WORDS.moon, value: chart.moon_sign, extra: `${moon.sign_sanskrit}` },
-    { ...CHART_WORDS.nakshatra, value: moon.nakshatra.name, extra: `Quarter ${moon.nakshatra.pada}, ruled by ${moon.nakshatra.lord}` },
-    { ...CHART_WORDS.sun, value: chart.sun_sign, extra: "In the star-based (sidereal) zodiac" },
-  ].filter(Boolean) as Array<{ name: string; sanskrit: string; about: string; value: string; extra: string }>;
+    { ...CHART_WORDS.moon, value: chart.moon_sign, proper: `${CHART_WORDS.moon.sanskrit}: ${moon.sign_sanskrit}` },
+    !timeUnknown && { ...CHART_WORDS.lagna, value: chart.lagna.sign, proper: `${CHART_WORDS.lagna.sanskrit}: ${chart.lagna.sign_sanskrit}, ruled by ${chart.lagna.lord}` },
+    { ...CHART_WORDS.nakshatra, value: moon.nakshatra.name, proper: `${CHART_WORDS.nakshatra.sanskrit}, pada ${moon.nakshatra.pada}, ruled by ${moon.nakshatra.lord}` },
+    { ...CHART_WORDS.sun, value: chart.sun_sign, proper: `${CHART_WORDS.sun.sanskrit}, sidereal zodiac` },
+  ].filter(Boolean) as Array<{ name: string; sanskrit: string; about: string; value: string; proper: string }>;
 
   const sadeSati = chart.transits.sade_sati;
   const groups = groupClaims(uniqueEvidence(reading.evidence));
@@ -155,14 +153,20 @@ function StarsResult({ reading, user, onRemake }: { reading: AstrologyReading; u
 
       <InShort headline={headline} text={overview} tone="star" />
 
+      {!timeUnknown && (
+        <section aria-labelledby="areas" className="flex flex-col gap-5">
+          <SectionTitle id="areas" title="Love, money, work and more" subtitle="How your chart looks for each part of your life." />
+          <LifeAreas domains={chart.domains} />
+        </section>
+      )}
+
       <section aria-labelledby="chart-facts" className="flex flex-col gap-5">
-        <SectionTitle id="chart-facts" title="Your chart at a glance" />
+        <SectionTitle id="chart-facts" title="Your signs" />
         <div className={`grid gap-x-10 sm:grid-cols-2 ${facts.length === 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
           {facts.map((f) => (
             <div key={f.name} className="flex flex-col gap-2 border-b border-line py-7">
-              <span className="eyebrow text-star">{f.name} · {f.sanskrit}</span>
+              <span className="eyebrow text-star">{f.name}</span>
               <span className="font-display text-6xl leading-none">{f.value}</span>
-              <span className="text-base text-ink-2">{f.extra}</span>
               <span className="text-base text-ink-2">{f.about}</span>
             </div>
           ))}
@@ -174,88 +178,101 @@ function StarsResult({ reading, user, onRemake }: { reading: AstrologyReading; u
           <p className="eyebrow text-star">Right now</p>
           <h2 className="text-5xl">What’s happening now</h2>
           <p className="text-lg leading-relaxed">
-            You are in a <strong>{period.mahadasha} period</strong> until {formatMonthYear(period.mahadasha_end)}. Inside it, a shorter{" "}
-            <strong>{period.antardasha} period</strong> runs from {formatMonthYear(period.antardasha_start)} to {formatMonthYear(period.antardasha_end)}.
-            In this tradition, each planet takes a turn to shape a part of your life.
+            In Indian astrology, each planet takes a turn to shape your life for some years.
+            Until {formatMonthYear(period.mahadasha_end)}, it is <strong>{period.mahadasha}’s turn</strong>. {PERIOD_WORDS[period.mahadasha]}{" "}
+            Inside it, a shorter <strong>{period.antardasha} time</strong> runs from {formatMonthYear(period.antardasha_start)} to {formatMonthYear(period.antardasha_end)}.
           </p>
           {interpretation.current_period?.text && <p className="text-lg leading-relaxed">{interpretation.current_period.text}</p>}
           <p className="text-lg text-ink-2">
             {sadeSati.active
-              ? `Saturn is passing over your Moon sign right now (Sade Sati, ${sadeSati.phase}). The books see this as a demanding time that builds maturity.`
-              : "Saturn’s long passage over your Moon sign (Sade Sati) is not happening now."}
+              ? "Saturn is passing over your sign right now. This lasts about seven and a half years. It can feel heavy, but hard work now helps you grow."
+              : "Saturn’s hard seven-and-a-half-year time is not happening for you now."}
           </p>
         </section>
       )}
 
       {written && (interpretation.predictions?.length ?? 0) > 0 && (
         <section aria-labelledby="ahead" className="flex flex-col gap-5">
-          <SectionTitle id="ahead" title="What’s ahead" subtitle="Careful, traditional pointers. Dates come only from your life periods." />
+          <SectionTitle id="ahead" title="What’s coming up" subtitle="Gentle pointers, not promises. Dates come from the times of your life." />
           <PredictionList predictions={interpretation.predictions ?? []} tone="star" />
         </section>
       )}
 
       {written && (interpretation.sections?.length ?? 0) > 0 && (
         <section aria-labelledby="topics" className="flex flex-col gap-5">
-          <SectionTitle id="topics" title="Your reading, topic by topic" />
+          <SectionTitle id="topics" title="Your life, one part at a time" />
           <TopicCards sections={interpretation.sections ?? []} icons={SECTION_ICONS} tone="star" />
         </section>
       )}
 
       {!written && (
         <section aria-labelledby="books" className="flex flex-col gap-5">
-          <SectionTitle id="books" title="What the classical books say about your chart" />
+          <SectionTitle id="books" title="What the old books say about you" />
           <div className="grid gap-x-10 gap-y-8 lg:grid-cols-2">
-            <PointList title="Lean into" kind="good" items={groups.good} />
-            <PointList title="Go easy on" kind="care" items={groups.care} />
-            <PointList title="Also in your chart" kind="other" items={groups.other} />
+            <PointList title="Your good side" kind="good" items={groups.good} />
+            <PointList title="Watch out for" kind="care" items={groups.care} />
+            <PointList title="Other things" kind="other" items={groups.other} />
           </div>
-        </section>
-      )}
-
-      {!timeUnknown && (
-        <section aria-labelledby="areas" className="flex flex-col gap-5">
-          <SectionTitle id="areas" title="Areas of your life" subtitle="How much your chart supports each area, from the planets linked to it." />
-          <LifeAreas domains={chart.domains} />
         </section>
       )}
 
       {chart.yogas.length > 0 && (
         <section aria-labelledby="yogas" className="flex flex-col gap-5">
-          <SectionTitle id="yogas" title="Special patterns in your chart" subtitle="A yoga is a pattern of planets that the old books link to a particular result." />
+          <SectionTitle id="yogas" title="Special mixes in your chart" subtitle="The old books say these mixes of planets bring certain results." />
           <ul className="grid gap-x-12 md:grid-cols-2">
-            {chart.yogas.map((y) => (
-              <li key={`${y.key}-${y.condition}`} className="flex flex-col gap-2 border-b border-line py-6">
-                <span className="font-display text-3xl">{y.name}</span>
-                <span className="text-base text-ink-2">{y.condition}</span>
-              </li>
-            ))}
+            {chart.yogas.filter((y, i, all) => all.findIndex((o) => o.key === y.key) === i).map((y) => {
+              const words = YOGA_WORDS[y.key];
+              return (
+                <li key={`${y.key}-${y.condition}`} className="flex flex-col gap-2 border-b border-line py-6">
+                  <span className="font-display text-3xl">{words?.name ?? y.name}</span>
+                  {words && <span className="text-lg">{words.meaning}</span>}
+                </li>
+              );
+            })}
           </ul>
         </section>
       )}
 
-      <Disclosure title="How we worked this out" subtitle="Your chart drawing, every planet, your life periods and the books we used">
+      <Disclosure title="How did we get this?" subtitle="The chart drawing, every planet, the times of your life, and the books we used">
         <div className="flex flex-col gap-8">
           <div className="grid items-start gap-6 lg:grid-cols-[22rem_1fr]">
             <BirthChart chart={chart} />
             <div className="flex flex-col gap-3 text-lg">
               <ChartLegend />
               <p className="text-base text-ink-2">
-                Worked out for {formatDate(chartDate)}{timeUnknown ? " at midday (birth time not known)" : ` at ${formatTime(chartTime)}`}, {chart.birth.timezone} time,
+                For experts: worked out for {formatDate(chartDate)}{timeUnknown ? " at midday (birth time not known)" : ` at ${formatTime(chartTime)}`}, {chart.birth.timezone} time,
                 at {chart.birth.latitude}°, {chart.birth.longitude}°{reading.place_name ? ` (${shortPlace(reading.place_name)})` : ""}.
                 Star-based zodiac with the Lahiri setting ({chart.birth.ayanamsa_lahiri}°), Julian Day {chart.birth.julian_day_ut}.
               </p>
             </div>
           </div>
           <div className="flex flex-col gap-3">
+            <h3 className="text-3xl">Proper names</h3>
+            <p className="text-base text-ink-2">The words an astrologer would use, if you want to look things up.</p>
+            <dl className="grid gap-x-10 gap-y-2 text-base sm:grid-cols-2">
+              {facts.map((f) => (
+                <div key={f.name} className="flex flex-wrap gap-x-2 border-b border-line py-2"><dt className="font-semibold">{f.name}:</dt><dd className="text-ink-2">{f.proper}</dd></div>
+              ))}
+              {period && (
+                <div className="flex flex-wrap gap-x-2 border-b border-line py-2"><dt className="font-semibold">Times of your life:</dt><dd className="text-ink-2">{period.mahadasha} mahadasha, {period.antardasha} antardasha</dd></div>
+              )}
+              <div className="flex flex-wrap gap-x-2 border-b border-line py-2"><dt className="font-semibold">Saturn’s hard time:</dt><dd className="text-ink-2">Sade Sati{sadeSati.active ? ` (now, ${sadeSati.phase})` : " (not now)"}</dd></div>
+              {chart.yogas.map((y) => (
+                <div key={`${y.key}-${y.condition}-p`} className="flex flex-wrap gap-x-2 border-b border-line py-2"><dt className="font-semibold">{YOGA_WORDS[y.key]?.name ?? y.name}:</dt><dd className="text-ink-2">{y.name}, {y.condition}</dd></div>
+              ))}
+            </dl>
+          </div>
+          <div className="flex flex-col gap-3">
             <h3 className="text-3xl">Every planet</h3>
             <PlanetTable planets={chart.planets} timeUnknown={timeUnknown} />
           </div>
           <div className="flex flex-col gap-3">
-            <h3 className="text-3xl">Your life periods (Vimshottari dasha)</h3>
+            <h3 className="text-3xl">The times of your life</h3>
+            <p className="text-base text-ink-3">Proper name: Vimshottari dasha.</p>
             <PeriodTimeline chart={chart} />
           </div>
           <div className="flex flex-col gap-3">
-            <h3 className="text-3xl">The statements from the books ({uniqueEvidence(reading.evidence).length})</h3>
+            <h3 className="text-3xl">What the books say, line by line ({uniqueEvidence(reading.evidence).length})</h3>
             <ul className="flex flex-col gap-2">
               {uniqueEvidence(reading.evidence).map((e) => (
                 <SourceItem key={e.claim} claim={e.claim} source={e.source_name} reasons={e.reasons} />

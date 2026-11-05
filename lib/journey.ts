@@ -41,23 +41,23 @@ export const JOURNEY: JourneyStep[] = [
     icon: Hash, tone: "num", module: "numerology",
   },
   {
-    key: "stars", href: "/stars", short: "Stars", title: "Your Stars", tradition: "Vedic astrology",
-    what: "Where the planets were when you were born, and what that means.", needs: "Your birth date, time and place",
+    key: "stars", href: "/stars", short: "Stars", title: "Your Stars", tradition: "Indian astrology",
+    what: "How the sky looked when you were born, and what it means for you.", needs: "Your birth date, time and place",
     icon: Star, tone: "star", module: "astrology",
   },
   {
-    key: "hand", href: "/hand", short: "Hand", title: "Your Hand", tradition: "Palmistry",
+    key: "hand", href: "/hand", short: "Hand", title: "Your Hand", tradition: "Palm reading",
     what: "What the lines on your palm say.", needs: "A photo of your palm",
     icon: Hand, tone: "hand", module: "palmistry",
   },
   {
     key: "story", href: "/story", short: "Story", title: "Your Full Story", tradition: "All three together",
-    what: "All three readings side by side: where they agree and where they differ.", needs: "At least one reading",
+    what: "Your three readings put together: where they agree and where they don’t.", needs: "At least one reading",
     icon: BookOpen, tone: "story", premium: true,
   },
   {
-    key: "ask", href: "/ask", short: "Ask", title: "Ask a Question", tradition: "Your personal guide",
-    what: "Ask anything in your own words. Answers come only from your readings.", needs: "At least one reading",
+    key: "ask", href: "/ask", short: "Ask", title: "Ask a Question", tradition: "Your questions",
+    what: "Ask anything in your own words. We answer only from your readings.", needs: "At least one reading",
     icon: MessageCircle, tone: "ask", premium: true,
   },
 ];

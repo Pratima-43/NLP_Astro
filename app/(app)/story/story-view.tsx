@@ -18,6 +18,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import { apiFetch, postJson } from "@/lib/api";
 import { useLatest } from "@/lib/hooks";
 import { JOURNEY, MODULE_STEP, TONE, step as stepOf } from "@/lib/journey";
+import { plainClaim } from "@/lib/plain";
 import { RELATION_WORDS } from "@/lib/readings";
 import type { CombinedReportResult, IntegrationStatus, ModuleKey } from "@/types/readings";
 
@@ -26,7 +27,7 @@ const STAGES = [
   "Gathering your three readings",
   "Lining them up, topic by topic",
   "Finding where they agree and where they differ",
-  "Explaining your key facts in plain words",
+  "Explaining what each part means",
   "Writing your full story",
 ];
 const MODULES: ModuleKey[] = ["numerology", "astrology", "palmistry"];
@@ -134,7 +135,7 @@ function StoryResult({ report, outdated, onRemake }: { report: CombinedReportRes
   const facts = report.profile_facts;
   const meanings = report.fact_meanings ?? {};
   const headline = report.headline || "Your three readings, side by side";
-  const overview = report.overview || "Below are the key facts from each of your readings, explained in plain words.";
+  const overview = report.overview || "Below you can see the main things each reading found, in simple words.";
 
   return (
     <div className="flex flex-col gap-10">
@@ -187,7 +188,7 @@ function StoryResult({ report, outdated, onRemake }: { report: CombinedReportRes
 
       {(report.timeline?.length ?? 0) > 0 && (
         <section aria-labelledby="timeline" className="flex flex-col gap-5">
-          <SectionTitle id="timeline" title="What’s ahead" subtitle="Taken only from your life periods and your year number." />
+          <SectionTitle id="timeline" title="What’s coming up" subtitle="Taken only from the times of your life and this year’s number." />
           <ol className="flex flex-col gap-3">
             {report.timeline?.map((t, i) => (
               <li key={i} className="flex gap-4 rounded-[1.75rem] border border-line bg-surface p-5">
@@ -214,7 +215,7 @@ function StoryResult({ report, outdated, onRemake }: { report: CombinedReportRes
 
       {report.themes.length > 0 && (
         <section aria-labelledby="themes" className="flex flex-col gap-5">
-          <SectionTitle id="themes" title="Your story, topic by topic" />
+          <SectionTitle id="themes" title="Love, money, work and more" subtitle="What your readings say about each part of your life." />
           <div className="grid gap-4 lg:grid-cols-2">
             {report.themes.map((t) => {
               const relation = RELATION_WORDS[t.relation] ?? RELATION_WORDS.difference;
@@ -234,7 +235,7 @@ function StoryResult({ report, outdated, onRemake }: { report: CombinedReportRes
       )}
 
       {facts && (
-        <Disclosure title="Your key facts explained" subtitle="Every number, sign and line in your readings, and what it means" defaultOpen={!written}>
+        <Disclosure title="What each part means" subtitle="Every number, sign and line in your readings, in simple words" defaultOpen={!written}>
           <div className="flex flex-col gap-8">
             {MODULES.filter((m) => facts[m]?.length).map((m) => (
               <div key={m} className="flex flex-col gap-3">
@@ -255,15 +256,15 @@ function StoryResult({ report, outdated, onRemake }: { report: CombinedReportRes
         </Disclosure>
       )}
 
-      <Disclosure title="How we put it together" subtitle="The method, and every statement your story used">
+      <Disclosure title="How did we get this?" subtitle="How we put it together, and every line from the books we used">
         <div className="flex flex-col gap-4">
           <p className="text-lg">{report.method}</p>
           <ul className="flex flex-col gap-2">
             {Object.entries(report.claims).map(([id, c]) => (
               <li key={id} className="flex flex-col gap-1 rounded-2xl bg-paper p-4">
                 <span className={`text-base font-semibold ${TONE[MODULE_STEP[c.module].tone].text}`}>{MODULE_STEP[c.module].short}</span>
-                <span className="text-lg">{c.claim}</span>
-                <span className="text-base text-ink-2">Why: {c.basis}</span>
+                <span className="text-lg">{plainClaim(c.claim)}</span>
+                <span className="text-base text-ink-2">Why it fits you: {c.basis}</span>
               </li>
             ))}
           </ul>

@@ -15,19 +15,19 @@ from sqlalchemy.orm import Session
 from app.db.models import AstrologyChart, NumerologyReport, PalmReading
 
 THEMES = {
-    "personality": "Personality & temperament",
-    "career": "Career & purpose",
-    "relationships": "Love & relationships",
-    "finance": "Wealth & material life",
-    "health": "Vitality & wellbeing",
-    "education": "Mind & learning",
-    "communication": "Expression & communication",
-    "creativity": "Creativity & imagination",
-    "leadership": "Leadership & drive",
-    "emotions": "Emotional life",
-    "spirituality": "Spirituality & meaning",
-    "family": "Home & family",
-    "timing": "Timing & the year ahead",
+    "personality": "Who you are",
+    "career": "Work",
+    "relationships": "Love",
+    "finance": "Money",
+    "health": "Health and energy",
+    "education": "Mind and learning",
+    "communication": "Talking and sharing",
+    "creativity": "Creativity",
+    "leadership": "Leading and drive",
+    "emotions": "Feelings",
+    "spirituality": "Inner peace",
+    "family": "Home and family",
+    "timing": "What's coming up",
 }
 
 # Keyword routing for questions and for numerology categories (which predate the shared themes).
@@ -48,7 +48,7 @@ THEME_KEYWORDS = {
 }
 
 NUMEROLOGY_LAYER_WEIGHTS = {"component_specific": 1.0, "compound_birth_date": 0.9, "context_specific": 0.7, "general_number": 0.55}
-COMPONENT_LABELS = {"moolank": "Moolank", "bhagyank": "Bhagyank", "namank": "Namank", "personal_year": "Personal Year"}
+PLAIN_COMPONENT_LABELS = {"moolank": "birthday number", "bhagyank": "life number", "namank": "name number", "personal_year": "number for this year"}
 
 
 # Keywords match at word starts, so "art" matches "artistic" but not "heart".
@@ -98,7 +98,7 @@ def _numerology_claims(report: dict) -> list[dict]:
                 "trait": record["trait"],
                 "claim": record["claim"],
                 "polarity": record.get("polarity"),
-                "basis": f"{COMPONENT_LABELS[component]} {number} ({record.get('evidence_layer', 'general_number').replace('_', ' ')})",
+                "basis": f"your {PLAIN_COMPONENT_LABELS[component]} is {number}" + (" (it is about your exact birth date)" if record.get("evidence_layer") == "compound_birth_date" else ""),
                 "weight": NUMEROLOGY_LAYER_WEIGHTS.get(record.get("evidence_layer", "general_number"), 0.5),
                 "source_name": record.get("source_name"),
             })
